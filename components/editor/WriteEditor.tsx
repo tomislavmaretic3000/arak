@@ -2,8 +2,10 @@
 
 import { useRef, useCallback, useEffect, useState, useMemo } from 'react'
 import { useEditorStore } from '@/store/editor'
+import { useFilesStore } from '@/store/files'
 import { getCaretY } from '@/lib/editor/caret'
 import { parseSentences, getCurrentSegmentIndex } from '@/lib/editor/sentences'
+import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
 const FONT_SIZE = '18px'
 const LINE_HEIGHT = '1.75'
@@ -22,6 +24,7 @@ const textStyle: React.CSSProperties = {
 export function WriteEditor() {
   const { content, focusMode, typewriterMode, font, setContent } =
     useEditorStore()
+  const { title, setTitle, markSaved } = useFilesStore()
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [cursorPos, setCursorPos] = useState(0)
@@ -60,7 +63,39 @@ export function WriteEditor() {
     rafRef.current = requestAnimationFrame(scrollToTypewriter)
   }, [scrollToTypewriter])
 
-  // ── Event handlers ────────────────────────────────────────────────────────
+  // ── File operations ───────────────────────────────────────────────────────
+  const handleSave = useCallback(async () => {
+    const filename = (title || 'untitled').trim() + '.txt'
+    const saved = await saveToFile(content, filename)
+    if (saved) markSaved()
+  }, [content, title, markSaved])
+
+  const handleOpen = useCallback(async () => {
+    const result = await loadFromFile()
+    if (!result) return
+    setContent(result.content)
+    setTitle(result.name)
+    markSaved()
+  }, [setContent, setTitle, markSaved])
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey
+      if (mod && e.key === 's') {
+        e.preventDefault()
+        handleSave()
+      }
+      if (mod && e.key === 'o') {
+        e.preventDefault()
+        handleOpen()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [handleSave, handleOpen])
+
+  // ── Editor event handlers ─────────────────────────────────────────────────
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setContent(e.target.value)
@@ -122,11 +157,35 @@ export function WriteEditor() {
       style={{
         maxWidth: '65ch',
         margin: '0 auto',
-        padding: '22vh 2rem 45vh',
+        padding: '18vh 2rem 45vh',
       }}
     >
+      {/* ── Document title ── */}
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="untitled"
+        style={{
+          display: 'block',
+          width: '100%',
+          background: 'transparent',
+          border: 'none',
+          outline: 'none',
+          fontFamily,
+          fontSize: '13px',
+          letterSpacing: '0.04em',
+          color: 'var(--muted)',
+          opacity: 0.6,
+          marginBottom: '3rem',
+          padding: 0,
+          textTransform: 'lowercase',
+        }}
+      />
+
+      {/* ── Editor area ── */}
       <div style={{ position: 'relative' }}>
-        {/* ── Mirror layer (focus mode styled text) ── */}
+        {/* Mirror layer */}
         {focusMode && (
           <div
             aria-hidden="true"
@@ -145,7 +204,7 @@ export function WriteEditor() {
           </div>
         )}
 
-        {/* ── Textarea (input layer) ── */}
+        {/* Textarea */}
         <textarea
           ref={textareaRef}
           value={content}
@@ -166,7 +225,6 @@ export function WriteEditor() {
             outline: 'none',
             resize: 'none',
             overflow: 'hidden',
-            // Hide text when mirror is active; show natively otherwise
             color: focusMode ? 'transparent' : 'var(--fg)',
             caretColor: 'var(--fg)',
           }}
