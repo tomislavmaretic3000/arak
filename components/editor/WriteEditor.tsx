@@ -3,6 +3,7 @@
 import { useRef, useCallback, useEffect, useState, useMemo } from 'react'
 import { useEditorStore } from '@/store/editor'
 import { useFilesStore } from '@/store/files'
+import { useSearchStore } from '@/store/search'
 import { getCaretY } from '@/lib/editor/caret'
 import { parseSentences, getCurrentSegmentIndex } from '@/lib/editor/sentences'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
@@ -25,6 +26,14 @@ export function WriteEditor() {
   const { content, focusMode, typewriterMode, font, setContent } =
     useEditorStore()
   const { title, setTitle, markSaved } = useFilesStore()
+  const {
+    isOpen: searchOpen,
+    matches,
+    currentMatchIndex,
+    open: openSearch,
+    goToNext,
+    goToPrev,
+  } = useSearchStore()
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [cursorPos, setCursorPos] = useState(0)
@@ -37,7 +46,7 @@ export function WriteEditor() {
       ? 'var(--font-noto-mono)'
       : 'var(--font-noto-sans)'
 
-  // ── Auto-resize textarea ──────────────────────────────────────────────────
+  // ── Auto-resize ───────────────────────────────────────────────────────────
   useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
@@ -49,19 +58,41 @@ export function WriteEditor() {
   const scrollToTypewriter = useCallback(() => {
     const ta = textareaRef.current
     if (!ta || !typewriterMode) return
-
     const caretY = getCaretY(ta, ta.selectionStart)
     const taRect = ta.getBoundingClientRect()
     const absoluteCaretY = taRect.top + window.scrollY + caretY
-    const target = absoluteCaretY - window.innerHeight * 0.42
-
-    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
+    window.scrollTo({
+      top: Math.max(0, absoluteCaretY - window.innerHeight * 0.42),
+      behavior: 'smooth',
+    })
   }, [typewriterMode])
 
   const scheduleScroll = useCallback(() => {
     cancelAnimationFrame(rafRef.current)
     rafRef.current = requestAnimationFrame(scrollToTypewriter)
   }, [scrollToTypewriter])
+
+  // ── Scroll to current search match ───────────────────────────────────────
+  useEffect(() => {
+    const ta = textareaRef.current
+    if (!ta || !searchOpen || matches.length === 0) return
+    const match = matches[currentMatchIndex]
+    if (!match) return
+
+    // Set textarea selection to highlight the match
+    ta.focus()
+    ta.setSelectionRange(match.start, match.end)
+    setCursorPos(match.start)
+
+    // Scroll match into view
+    const caretY = getCaretY(ta, match.start)
+    const taRect = ta.getBoundingClientRect()
+    const absoluteY = taRect.top + window.scrollY + caretY
+    window.scrollTo({
+      top: Math.max(0, absoluteY - window.innerHeight * 0.42),
+      behavior: 'smooth',
+    })
+  }, [currentMatchIndex, matches, searchOpen])
 
   // ── File operations ───────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
@@ -82,18 +113,27 @@ export function WriteEditor() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey
-      if (mod && e.key === 's') {
+      if (mod && e.key === 's') { e.preventDefault(); handleSave(); return }
+      if (mod && e.key === 'o') { e.preventDefault(); handleOpen(); return }
+      if (mod && !e.shiftKey && e.key === 'f') {
         e.preventDefault()
-        handleSave()
+        openSearch('search')
+        return
       }
-      if (mod && e.key === 'o') {
+      if (mod && e.shiftKey && e.key === 'f') {
         e.preventDefault()
-        handleOpen()
+        openSearch('replace')
+        return
+      }
+      // Navigate matches with Cmd+G / Cmd+Shift+G while search is open
+      if (searchOpen && mod && e.key === 'g') {
+        e.preventDefault()
+        e.shiftKey ? goToPrev() : goToNext()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [handleSave, handleOpen])
+  }, [handleSave, handleOpen, openSearch, searchOpen, goToNext, goToPrev])
 
   // ── Editor event handlers ─────────────────────────────────────────────────
   const handleChange = useCallback(
@@ -115,42 +155,89 @@ export function WriteEditor() {
     setCursorPos(textareaRef.current?.selectionStart ?? 0)
   }, [])
 
-  // ── Focus-mode mirror content ─────────────────────────────────────────────
-  const segments = useMemo(() => parseSentences(content), [content])
-  const currentIdx = useMemo(
-    () => getCurrentSegmentIndex(segments, cursorPos),
-    [segments, cursorPos]
+  // ── Mirror content ────────────────────────────────────────────────────────
+  const sentences = useMemo(() => parseSentences(content), [content])
+  const currentSentenceIdx = useMemo(
+    () => getCurrentSegmentIndex(sentences, cursorPos),
+    [sentences, cursorPos]
   )
 
   const mirrorContent = useMemo(() => {
-    if (!focusMode) return null
+    // Search mode: render with match highlights (suspends focus dimming)
+    if (searchOpen && matches.length > 0) {
+      const parts: React.ReactNode[] = []
+      let lastEnd = 0
 
-    if (!content) {
+      matches.forEach((match, i) => {
+        if (lastEnd < match.start) {
+          parts.push(
+            <span key={`t-${lastEnd}`}>{content.slice(lastEnd, match.start)}</span>
+          )
+        }
+        parts.push(
+          <span
+            key={`m-${match.start}`}
+            style={{
+              background:
+                i === currentMatchIndex
+                  ? 'rgba(220, 160, 40, 0.45)'
+                  : 'rgba(220, 160, 40, 0.18)',
+              borderRadius: '2px',
+              transition: 'background 150ms ease-in-out',
+            }}
+          >
+            {content.slice(match.start, match.end)}
+          </span>
+        )
+        lastEnd = match.end
+      })
+
+      if (lastEnd < content.length) {
+        parts.push(<span key={`t-${lastEnd}`}>{content.slice(lastEnd)}</span>)
+      }
+
+      return <>{parts}</>
+    }
+
+    // Focus mode: sentence dimming
+    if (focusMode) {
+      if (!content) {
+        return (
+          <span style={{ color: 'var(--muted)', opacity: 0.5 }}>
+            start writing...
+          </span>
+        )
+      }
+      if (sentences.length === 0) return <span>{content}</span>
       return (
-        <span style={{ color: 'var(--muted)', opacity: 0.5 }}>
-          start writing...
-        </span>
+        <>
+          {sentences.map((seg, i) => (
+            <span
+              key={seg.start}
+              style={{
+                opacity: i === currentSentenceIdx ? 1 : 0.2,
+                transition: 'opacity 180ms ease-in-out',
+              }}
+            >
+              {seg.text}
+            </span>
+          ))}
+        </>
       )
     }
 
-    if (segments.length === 0) return <span>{content}</span>
+    return null
+  }, [
+    searchOpen,
+    matches,
+    currentMatchIndex,
+    focusMode,
+    content,
+    sentences,
+    currentSentenceIdx,
+  ])
 
-    return (
-      <>
-        {segments.map((seg, i) => (
-          <span
-            key={seg.start}
-            style={{
-              opacity: i === currentIdx ? 1 : 0.2,
-              transition: 'opacity 180ms ease-in-out',
-            }}
-          >
-            {seg.text}
-          </span>
-        ))}
-      </>
-    )
-  }, [content, focusMode, segments, currentIdx])
+  const showMirror = searchOpen || focusMode
 
   return (
     <div
@@ -186,7 +273,7 @@ export function WriteEditor() {
       {/* ── Editor area ── */}
       <div style={{ position: 'relative' }}>
         {/* Mirror layer */}
-        {focusMode && (
+        {showMirror && (
           <div
             aria-hidden="true"
             style={{
@@ -213,7 +300,7 @@ export function WriteEditor() {
           onPointerUp={handlePointerUp}
           autoFocus
           spellCheck
-          placeholder={focusMode ? '' : 'start writing...'}
+          placeholder={showMirror ? '' : 'start writing...'}
           style={{
             ...textStyle,
             fontFamily,
@@ -225,7 +312,8 @@ export function WriteEditor() {
             outline: 'none',
             resize: 'none',
             overflow: 'hidden',
-            color: focusMode ? 'transparent' : 'var(--fg)',
+            // Hide text behind mirror when mirror is active
+            color: showMirror ? 'transparent' : 'var(--fg)',
             caretColor: 'var(--fg)',
           }}
         />
