@@ -1,31 +1,42 @@
 @import "tailwindcss";
 
+/* ── Base tokens (light theme) ── */
 :root {
-  /* Light theme */
   --bg: #fafaf8;
   --fg: #1a1a18;
-  --muted: #6b6b67;
+  --muted: #8a8a84;
   --subtle: #d4d4ce;
   --surface: #f0f0ec;
 
-  /* Shade theme */
+  /* Dark */
+  --bg-dark: #111110;
+  --fg-dark: #e8e8e4;
+  --muted-dark: #6a6a66;
+  --subtle-dark: #2e2e2c;
+
+  /* Shade */
   --bg-shade: #f0ece4;
   --fg-shade: #2a2620;
   --muted-shade: #7a7268;
   --subtle-shade: #c8c0b4;
-  --surface-shade: #e4ddd4;
+}
 
-  /* Dark theme */
-  --bg-dark: #111110;
-  --fg-dark: #e8e8e4;
-  --muted-dark: #7a7a76;
-  --subtle-dark: #2e2e2c;
-  --surface-dark: #1c1c1a;
+/* ── Theme cascades ── */
+[data-theme="dark"] {
+  --bg: var(--bg-dark);
+  --fg: var(--fg-dark);
+  --muted: var(--muted-dark);
+  --subtle: var(--subtle-dark);
+}
+
+[data-theme="shade"] {
+  --bg: var(--bg-shade);
+  --fg: var(--fg-shade);
+  --muted: var(--muted-shade);
+  --subtle: var(--subtle-shade);
 }
 
 @theme inline {
-  --color-background: var(--bg);
-  --color-foreground: var(--fg);
   --font-sans: var(--font-noto-sans);
   --font-serif: var(--font-noto-serif);
   --font-mono: var(--font-noto-mono);
@@ -49,24 +60,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark theme class */
-body.theme-dark {
-  background: var(--bg-dark);
-  color: var(--fg-dark);
-}
-
-/* Shade theme class */
-body.theme-shade {
-  background: var(--bg-shade);
-  color: var(--fg-shade);
-}
-
-/* Smooth scrolling */
-* {
-  scroll-behavior: smooth;
-}
-
-/* Selection */
 ::selection {
-  background: rgba(100, 100, 90, 0.2);
+  background: rgba(100, 100, 90, 0.15);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 0;
 }
