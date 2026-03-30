@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans, Noto_Serif, Noto_Sans_Mono } from "next/font/google";
+import { SessionProvider } from "@/components/providers/SessionProvider";
 import "./globals.css";
 
 const notoSans = Noto_Sans({
@@ -35,7 +36,9 @@ export default function RootLayout({
       lang="en"
       className={`${notoSans.variable} ${notoSerif.variable} ${notoMono.variable} h-full`}
     >
-      <body className="h-full">{children}</body>
+      <body className="h-full">
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   );
 }

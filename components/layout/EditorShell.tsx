@@ -6,11 +6,13 @@ import { LeftSidebar } from '@/components/ui/LeftSidebar'
 import { RightSidebar } from '@/components/ui/RightSidebar'
 import { Counters } from '@/components/ui/Counters'
 import { ExportPanel } from '@/components/ui/ExportPanel'
+import { DrivePanel } from '@/components/ui/DrivePanel'
 
 export function EditorShell({ children }: { children: React.ReactNode }) {
   const { leftOpen, rightOpen, openLeft, openRight, closeAll } = useUIStore()
   const anyOpen = leftOpen || rightOpen
   const [exportOpen, setExportOpen] = useState(false)
+  const [driveOpen, setDriveOpen] = useState(false)
 
   // ── Global keyboard shortcuts ─────────────────────────────────────────────
   useEffect(() => {
@@ -19,9 +21,11 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
       if (mod && e.key === '[') { e.preventDefault(); leftOpen ? closeAll() : openLeft(); return }
       if (mod && e.key === ']') { e.preventDefault(); rightOpen ? closeAll() : openRight(); return }
       if (mod && e.shiftKey && e.key === 'e') { e.preventDefault(); setExportOpen((v) => !v); return }
+      if (mod && e.shiftKey && e.key === 'd') { e.preventDefault(); setDriveOpen((v) => !v); return }
       if (e.key === 'Escape') {
         if (anyOpen) { closeAll(); return }
         if (exportOpen) { setExportOpen(false); return }
+        if (driveOpen) { setDriveOpen(false); return }
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -44,6 +48,9 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
+      {/* ── Drive panel ── */}
+      <DrivePanel isOpen={driveOpen} onClose={() => setDriveOpen(false)} />
+
       {/* ── Sidebars ── */}
       <LeftSidebar />
       <RightSidebar />
@@ -51,6 +58,32 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
       {/* ── Edge triggers ── */}
       <SidebarTrigger side="left"  isOpen={leftOpen}  onToggle={() => leftOpen  ? closeAll() : openLeft()} />
       <SidebarTrigger side="right" isOpen={rightOpen} onToggle={() => rightOpen ? closeAll() : openRight()} />
+
+      {/* ── Drive trigger ── */}
+      <button
+        onClick={() => setDriveOpen((v) => !v)}
+        title="Google Drive (⌘⇧D)"
+        style={{
+          position: 'fixed',
+          bottom: '1.4rem',
+          left: '3rem',
+          zIndex: 20,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '6px',
+          borderRadius: '6px',
+          opacity: driveOpen ? 0.6 : 0.2,
+          transition: 'opacity 200ms ease-in-out',
+          color: 'var(--fg)',
+          display: 'flex',
+          alignItems: 'center',
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.65' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = driveOpen ? '0.6' : '0.2' }}
+      >
+        <DriveIcon />
+      </button>
 
       {/* ── Export trigger (bottom-center) ── */}
       <button
@@ -149,6 +182,16 @@ function ExportIcon() {
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
       <path d="M7.5 1v9M4 6.5l3.5 3.5 3.5-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M2 11v2h11v-2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
+    </svg>
+  )
+}
+
+function DriveIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+      <path d="M5.5 2L1 10h4l4.5-8H5.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M9.5 2l4.5 8H10L5.5 2H9.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" opacity="0.7" />
+      <path d="M1 10l2.5 3h8L14 10H1z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" opacity="0.5" />
     </svg>
   )
 }
