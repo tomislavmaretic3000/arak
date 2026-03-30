@@ -17,6 +17,7 @@ import Suggestion, {
 } from '@tiptap/suggestion'
 import { useFormatStore } from '@/store/format'
 import { useEditorStore } from '@/store/editor'
+import { useDocumentsStore } from '@/store/documents'
 import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommands'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
@@ -42,6 +43,17 @@ export function FormatEditor() {
   const { content, title, setContent, setTitle, markSaved, markDirty } =
     useFormatStore()
   const font = useEditorStore((s) => s.font)
+  const { docs, activeFormatId, createDoc, updateDoc } = useDocumentsStore()
+
+  // Bootstrap format doc on first mount
+  useEffect(() => {
+    const formatDocs = docs.filter((d) => d.mode === 'format')
+    if (formatDocs.length === 0) {
+      const doc = createDoc('format', title || 'untitled')
+      if (content) updateDoc(doc.id, { content })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [slashMenu, setSlashMenu] = useState<SlashMenuState | null>(null)
   const [bubblePos, setBubblePos] = useState<{ x: number; y: number } | null>(null)
@@ -158,8 +170,10 @@ export function FormatEditor() {
     content: content ?? undefined,
     autofocus: true,
     onUpdate: ({ editor }) => {
-      setContent(editor.getJSON() as Record<string, unknown>)
+      const json = editor.getJSON() as Record<string, unknown>
+      setContent(json)
       markDirty()
+      if (activeFormatId) updateDoc(activeFormatId, { content: json })
     },
     editorProps: {
       attributes: {
@@ -245,7 +259,10 @@ export function FormatEditor() {
       <input
         type="text"
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => {
+          setTitle(e.target.value)
+          if (activeFormatId) updateDoc(activeFormatId, { title: e.target.value })
+        }}
         placeholder="untitled"
         style={{
           display: 'block',

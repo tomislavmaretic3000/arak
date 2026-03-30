@@ -4,6 +4,7 @@ import { useRef, useCallback, useEffect, useState, useMemo } from 'react'
 import { useEditorStore } from '@/store/editor'
 import { useFilesStore } from '@/store/files'
 import { useSearchStore } from '@/store/search'
+import { useDocumentsStore } from '@/store/documents'
 import { getCaretY } from '@/lib/editor/caret'
 import { parseSentences, getCurrentSegmentIndex } from '@/lib/editor/sentences'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
@@ -35,9 +36,41 @@ export function WriteEditor() {
     goToPrev,
   } = useSearchStore()
 
+  const { docs, activeWriteId, createDoc, updateDoc, setActiveWrite } =
+    useDocumentsStore()
+
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [cursorPos, setCursorPos] = useState(0)
   const rafRef = useRef<number>(0)
+
+  // ── Bootstrap documents store on first mount ──────────────────────────────
+  useEffect(() => {
+    const writeDocs = docs.filter((d) => d.mode === 'write')
+    if (writeDocs.length === 0) {
+      // Migrate existing content from legacy stores
+      const existing = useEditorStore.getState()
+      const filesMeta = useFilesStore.getState()
+      const doc = createDoc('write', filesMeta.title || 'untitled')
+      updateDoc(doc.id, { content: existing.content || '' })
+    } else if (!activeWriteId || !docs.find((d) => d.id === activeWriteId)) {
+      setActiveWrite(writeDocs[0].id)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Load active doc into editor when it changes ───────────────────────────
+  useEffect(() => {
+    if (!activeWriteId) return
+    const doc = docs.find((d) => d.id === activeWriteId)
+    if (!doc) return
+    const editorContent = useEditorStore.getState().content
+    // Only load if the doc's content differs (i.e. user switched docs)
+    if (typeof doc.content === 'string' && doc.content !== editorContent) {
+      setContent(doc.content)
+      setTitle(doc.title)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWriteId])
 
   const fontFamily =
     font === 'serif'
@@ -138,11 +171,14 @@ export function WriteEditor() {
   // ── Editor event handlers ─────────────────────────────────────────────────
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setContent(e.target.value)
+      const val = e.target.value
+      setContent(val)
       setCursorPos(e.target.selectionStart)
       scheduleScroll()
+      // Persist to documents store
+      if (activeWriteId) updateDoc(activeWriteId, { content: val })
     },
-    [setContent, scheduleScroll]
+    [setContent, scheduleScroll, activeWriteId, updateDoc]
   )
 
   const handleKeyUp = useCallback(() => {
@@ -251,7 +287,10 @@ export function WriteEditor() {
       <input
         type="text"
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => {
+          setTitle(e.target.value)
+          if (activeWriteId) updateDoc(activeWriteId, { title: e.target.value })
+        }}
         placeholder="untitled"
         style={{
           display: 'block',
