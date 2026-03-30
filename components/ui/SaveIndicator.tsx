@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useFilesStore } from '@/store/files'
+import { useFormatStore } from '@/store/format'
 
 function timeAgo(ts: number): string {
   const s = Math.floor((Date.now() - ts) / 1000)
@@ -11,9 +12,19 @@ function timeAgo(ts: number): string {
   return m === 1 ? '1 min ago' : `${m} min ago`
 }
 
-export function SaveIndicator() {
-  const lastSaved = useFilesStore((s) => s.lastSaved)
-  const isDirty = useFilesStore((s) => s.isDirty)
+interface Props {
+  mode?: 'write' | 'format'
+}
+
+export function SaveIndicator({ mode = 'write' }: Props) {
+  const writeLastSaved = useFilesStore((s) => s.lastSaved)
+  const writeIsDirty = useFilesStore((s) => s.isDirty)
+  const formatLastSaved = useFormatStore((s) => s.lastSaved)
+  const formatIsDirty = useFormatStore((s) => s.isDirty)
+
+  const lastSaved = mode === 'format' ? formatLastSaved : writeLastSaved
+  const isDirty = mode === 'format' ? formatIsDirty : writeIsDirty
+
   const [label, setLabel] = useState('')
 
   useEffect(() => {

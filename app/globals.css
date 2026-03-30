@@ -68,3 +68,87 @@ body {
 ::-webkit-scrollbar {
   width: 0;
 }
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── TipTap / Format mode styles ── */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  opacity: 0.45;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.tiptap h1 { font-size: 1.8em; font-weight: 500; margin: 1.4em 0 0.4em; line-height: 1.25; }
+.tiptap h2 { font-size: 1.35em; font-weight: 500; margin: 1.2em 0 0.4em; line-height: 1.3; }
+.tiptap h3 { font-size: 1.1em; font-weight: 500; margin: 1em 0 0.3em; line-height: 1.4; }
+.tiptap p  { margin: 0 0 0.9em; }
+.tiptap ul, .tiptap ol { padding-left: 1.4em; margin: 0 0 0.9em; }
+.tiptap li { margin-bottom: 0.25em; }
+.tiptap blockquote {
+  border-left: 2px solid var(--subtle);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--muted);
+  font-style: italic;
+}
+.tiptap code {
+  font-family: var(--font-noto-mono);
+  font-size: 0.88em;
+  background: var(--surface);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+.tiptap pre {
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 1em 1.2em;
+  margin: 1em 0;
+  overflow-x: auto;
+}
+.tiptap pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+  line-height: 1.6;
+}
+.tiptap hr.arak-hr {
+  border: none;
+  border-top: 1px solid var(--subtle);
+  margin: 2em 0;
+}
+.tiptap a.arak-link {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--subtle);
+}
+.tiptap table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+.tiptap th, .tiptap td {
+  border: 1px solid var(--subtle);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.tiptap th {
+  background: var(--surface);
+  font-weight: 500;
+}
+.tiptap .selectedCell::after {
+  background: rgba(100, 100, 90, 0.08);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
