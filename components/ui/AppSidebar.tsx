@@ -211,7 +211,7 @@ export function AppSidebar() {
         scrollBehavior: 'smooth',
       }}
     >
-      <div style={{ padding: '72px 40px 48px', flex: 1 }}>
+      <div style={{ padding: '18vh 40px 48px 80px', flex: 1 }}>
 
         {/* ── Main level ── */}
         {level === 'main' && (
@@ -332,7 +332,9 @@ export function AppSidebar() {
               {[...docs].sort((a, b) => b.updatedAt - a.updatedAt).map((doc) => {
                 const preview = getPreview(doc.content)
                 const trimmed = preview.length > 130 ? preview.slice(0, 130) + '…' : preview
-                const isActive = doc.id === (doc.mode === 'write' ? activeWriteId : activeFormatId)
+                const isActive = isWrite
+                  ? (doc.mode === 'write' && doc.id === activeWriteId)
+                  : (doc.mode === 'format' && doc.id === activeFormatId)
                 return (
                   <RecentItem
                     key={doc.id}

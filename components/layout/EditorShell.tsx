@@ -53,7 +53,7 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
         style={{
           position: 'fixed',
           top: '24px',
-          right: 'calc(var(--sidebar-width) - 40px)',
+          right: '24px',
           width: '32px',
           height: '32px',
           borderRadius: '50%',
