@@ -64,6 +64,8 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
           padding: 0,
           transition: 'opacity 150ms',
           opacity: menuOpen ? 0.5 : 1,
+          willChange: 'transform',
+          transform: 'translateZ(0)',
         }}
       />
 
