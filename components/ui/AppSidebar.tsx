@@ -214,18 +214,18 @@ export function AppSidebar() {
 
         {/* ── Main level ── */}
         {level === 'main' && (
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '2.5em' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
+          <nav style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em', paddingBottom: '2em' }}>
               <MenuItem onClick={handleFormat}>{isWrite ? 'Format' : 'Write'}</MenuItem>
               <MenuItem onClick={() => setLevel('save')}>Save</MenuItem>
               <MenuItem onClick={() => setLevel('export')}>Export</MenuItem>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
+            <div style={{ borderTop: '1px solid var(--subtle)', paddingTop: '2em', paddingBottom: '2em', display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
               <MenuItem onClick={() => setLevel('open')}>Open</MenuItem>
               <MenuItem onClick={handleNew}>New</MenuItem>
               <MenuItem onClick={() => setLevel('recent')}>Recent</MenuItem>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
+            <div style={{ borderTop: '1px solid var(--subtle)', paddingTop: '2em', display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
               <MenuItem onClick={() => setLevel('settings')}>Settings</MenuItem>
             </div>
           </nav>
@@ -327,7 +327,7 @@ export function AppSidebar() {
         {level === 'recent' && (
           <SubLevel title="Recent" onBack={() => setLevel('main')}>
             {docs.length === 0 && <Hint>no documents yet</Hint>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '0.5rem' }}>
               {[...docs].sort((a, b) => b.updatedAt - a.updatedAt).map((doc) => {
                 const preview = getPreview(doc.content)
                 const trimmed = preview.length > 130 ? preview.slice(0, 130) + '…' : preview
@@ -413,7 +413,7 @@ function MenuItem({ children, onClick }: { children: React.ReactNode; onClick: (
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ ...ITEM, opacity: hovered ? 0.5 : 1 }}
+      style={{ ...ITEM, opacity: hovered ? 1 : 0.45 }}
     >
       {children}
     </button>
@@ -502,10 +502,10 @@ function RecentItem({
       style={{
         display: 'block',
         width: '100%',
-        background: isActive ? 'var(--subtle)' : hovered ? 'var(--surface)' : 'none',
+        background: isActive ? 'var(--item-active)' : hovered ? 'var(--item-hover)' : 'none',
         border: 'none',
         borderRadius: '6px',
-        padding: '10px 12px',
+        padding: '8px 10px',
         textAlign: 'left',
         cursor: 'pointer',
         transition: 'background 120ms',
@@ -514,18 +514,20 @@ function RecentItem({
       {trimmed && (
         <p style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '18px',
-          lineHeight: 1.5,
+          fontSize: '14px',
+          lineHeight: 1.2,
           color: 'var(--fg)',
-          margin: '0 0 6px',
+          margin: '0 0 4px',
+          opacity: 0.6,
         }}>
           {trimmed}
         </p>
       )}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
         <span style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '20px',
+          fontSize: '14px',
+          lineHeight: 1.2,
           fontWeight: 500,
           color: 'var(--fg)',
           overflow: 'hidden',
@@ -536,9 +538,9 @@ function RecentItem({
         </span>
         <span style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '16px',
+          fontSize: '14px',
+          lineHeight: 1.2,
           color: 'var(--muted)',
-          opacity: 0.8,
           whiteSpace: 'nowrap',
           flexShrink: 0,
         }}>

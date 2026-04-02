@@ -9,6 +9,8 @@
   --surface: #f0f0ec;
   --sidebar-bg: #ebebeb;
   --sidebar-width: 33.333vw;
+  --item-hover: rgba(0,0,0,0.05);
+  --item-active: rgba(0,0,0,0.09);
 
   /* Dark */
   --bg-dark: #111110;
@@ -32,6 +34,8 @@
   --muted: var(--muted-dark);
   --subtle: var(--subtle-dark);
   --sidebar-bg: var(--sidebar-bg-dark);
+  --item-hover: rgba(255,255,255,0.06);
+  --item-active: rgba(255,255,255,0.11);
 }
 
 [data-theme="shade"] {
