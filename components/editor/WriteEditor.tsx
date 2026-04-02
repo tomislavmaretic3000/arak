@@ -5,13 +5,16 @@ import { useEditorStore, FONT_SIZE_MAP, LINE_HEIGHT_MAP } from '@/store/editor'
 import { useFilesStore } from '@/store/files'
 import { useSearchStore } from '@/store/search'
 import { useDocumentsStore } from '@/store/documents'
+import { useUIStore } from '@/store/ui'
 import { parseParagraphs, getCurrentSegmentIndex } from '@/lib/editor/sentences'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 import { AnimatedPlaceholder } from './AnimatedPlaceholder'
 
 export function WriteEditor() {
-  const { content, focusMode, font, fontSize, lineHeight, setContent } =
+  const { content, focusMode: focusModeStore, font, fontSize, lineHeight, setContent } =
     useEditorStore()
+  const menuOpen = useUIStore((s) => s.menuOpen)
+  const focusMode = focusModeStore && !menuOpen
   const { title, setTitle, markSaved } = useFilesStore()
   const isEmpty = content.trim() === ''
   const {

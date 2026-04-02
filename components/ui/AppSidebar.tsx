@@ -447,11 +447,11 @@ function SubLevel({
       <div
         style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '13px',
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          color: 'var(--muted)',
-          opacity: 0.5,
+          fontSize: '28px',
+          fontWeight: 400,
+          letterSpacing: '-0.04em',
+          lineHeight: 1.25,
+          color: 'var(--fg)',
           marginBottom: '1.25rem',
         }}
       >
@@ -510,19 +510,18 @@ function RecentItem({
       {trimmed && (
         <p style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '12px',
+          fontSize: '18px',
           lineHeight: 1.5,
           color: 'var(--fg)',
           margin: '0 0 6px',
-          opacity: 1,
         }}>
           {trimmed}
         </p>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
         <span style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '13px',
+          fontSize: '20px',
           fontWeight: 500,
           color: 'var(--fg)',
           overflow: 'hidden',
@@ -533,7 +532,7 @@ function RecentItem({
         </span>
         <span style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '11px',
+          fontSize: '16px',
           color: 'var(--muted)',
           opacity: 0.8,
           whiteSpace: 'nowrap',
