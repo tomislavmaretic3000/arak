@@ -43,9 +43,9 @@ export const useEditorStore = create<EditorStore>()(
 // ── Display value maps ────────────────────────────────────────────────────────
 
 export const FONT_SIZE_MAP: Record<SizeOption, string> = {
-  small: '20px',
-  medium: '28px',
-  large: '34px',
+  small: '18px',
+  medium: '24px',
+  large: '32px',
 }
 
 export const LINE_HEIGHT_MAP: Record<SizeOption, string> = {

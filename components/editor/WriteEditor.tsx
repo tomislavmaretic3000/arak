@@ -7,11 +7,13 @@ import { useSearchStore } from '@/store/search'
 import { useDocumentsStore } from '@/store/documents'
 import { parseParagraphs, getCurrentSegmentIndex } from '@/lib/editor/sentences'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
+import { AnimatedPlaceholder } from './AnimatedPlaceholder'
 
 export function WriteEditor() {
   const { content, focusMode, font, fontSize, lineHeight, setContent } =
     useEditorStore()
   const { title, setTitle, markSaved } = useFilesStore()
+  const isEmpty = content.trim() === ''
   const {
     isOpen: searchOpen,
     matches,
@@ -206,13 +208,7 @@ export function WriteEditor() {
 
     // Focus mode: paragraph dimming
     if (focusMode) {
-      if (!content) {
-        return (
-          <span style={{ color: 'var(--muted)', opacity: 0.5 }}>
-            start writing...
-          </span>
-        )
-      }
+      if (!content) return null
       if (paragraphs.length === 0) return <span>{content}</span>
       return (
         <>
@@ -245,38 +241,22 @@ export function WriteEditor() {
       className="content-enter"
       style={{
         maxWidth: '65ch',
+        fontSize: fontSizePx,
         margin: '0 auto',
         padding: '18vh 2rem 45vh',
       }}
     >
-      {/* ── Document title ── */}
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => {
-          setTitle(e.target.value)
-          if (activeWriteId) updateDoc(activeWriteId, { title: e.target.value })
-        }}
-        placeholder="untitled"
-        style={{
-          display: 'block',
-          width: '100%',
-          background: 'transparent',
-          border: 'none',
-          outline: 'none',
-          fontFamily,
-          fontSize: '13px',
-          letterSpacing: '0.04em',
-          color: 'var(--muted)',
-          opacity: 0.6,
-          marginBottom: '3rem',
-          padding: 0,
-          textTransform: 'lowercase',
-        }}
-      />
-
       {/* ── Editor area ── */}
       <div style={{ position: 'relative' }}>
+        {/* Animated placeholder */}
+        {isEmpty && (
+          <AnimatedPlaceholder
+            fontFamily={fontFamily}
+            fontSize={fontSizePx}
+            lineHeight={lineHeightV}
+          />
+        )}
+
         {/* Mirror layer */}
         {showMirror && (
           <div
@@ -306,7 +286,7 @@ export function WriteEditor() {
           onPointerUp={handlePointerUp}
           autoFocus
           spellCheck
-          placeholder={showMirror ? '' : 'start writing...'}
+          placeholder=""
           style={{
             ...textStyle,
             fontFamily,

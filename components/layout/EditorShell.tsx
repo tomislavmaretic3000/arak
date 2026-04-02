@@ -1,234 +1,74 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useEffect } from 'react'
 import { useUIStore } from '@/store/ui'
-import { useDocumentsStore } from '@/store/documents'
-import { useEditorStore } from '@/store/editor'
-import { useFilesStore } from '@/store/files'
-import { LeftSidebar } from '@/components/ui/LeftSidebar'
-import { RightSidebar } from '@/components/ui/RightSidebar'
-import { Counters } from '@/components/ui/Counters'
-import { ExportPanel } from '@/components/ui/ExportPanel'
-import { DriveBrowser } from '@/components/ui/DriveBrowser'
-import { KeyboardHelp } from '@/components/ui/KeyboardHelp'
+import { AppSidebar } from '@/components/ui/AppSidebar'
 import { DocumentTitle } from '@/components/editor/DocumentTitle'
 
 export function EditorShell({ children }: { children: React.ReactNode }) {
-  const { leftOpen, rightOpen, openLeft, openRight, closeAll } = useUIStore()
-  const anyOpen = leftOpen || rightOpen
-  const [exportOpen, setExportOpen] = useState(false)
-  const [driveOpen, setDriveOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(false)
+  const { menuOpen, closeMenu, toggleMenu } = useUIStore()
 
-  const router = useRouter()
-  const pathname = usePathname()
-
-  // ── Global keyboard shortcuts ─────────────────────────────────────────────
+  // Escape closes the menu
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey
-      if (mod && e.key === '[') { e.preventDefault(); leftOpen ? closeAll() : openLeft(); return }
-      if (mod && e.key === ']') { e.preventDefault(); rightOpen ? closeAll() : openRight(); return }
-      if (mod && e.shiftKey && e.key === 'E') { e.preventDefault(); setExportOpen((v) => !v); return }
-      if (mod && e.shiftKey && e.key === 'D') { e.preventDefault(); setDriveOpen((v) => !v); return }
-      if (mod && e.key === '/') {
-        e.preventDefault()
-        setHelpOpen((v) => !v)
-        return
-      }
-      if (mod && !e.shiftKey && e.key === 'n') {
-        e.preventDefault()
-        const { createDoc } = useDocumentsStore.getState()
-        if (pathname === '/write') {
-          const doc = createDoc('write')
-          useEditorStore.getState().setContent('')
-          useFilesStore.getState().setTitle('untitled')
-          useDocumentsStore.getState().setActiveWrite(doc.id)
-          router.push('/write')
-        } else {
-          const doc = createDoc('format')
-          useDocumentsStore.getState().setActiveFormat(doc.id)
-          router.push('/format')
-        }
-        closeAll()
-        return
-      }
-      if (e.key === 'Escape') {
-        if (helpOpen) { setHelpOpen(false); return }
-        if (anyOpen) { closeAll(); return }
-        if (exportOpen) { setExportOpen(false); return }
-        if (driveOpen) { setDriveOpen(false); return }
-      }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && menuOpen) closeMenu()
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [leftOpen, rightOpen, anyOpen, exportOpen, driveOpen, helpOpen, openLeft, openRight, closeAll, router, pathname])
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menuOpen, closeMenu])
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', position: 'relative' }}>
       <DocumentTitle />
-      {/* ── Backdrop ── */}
-      {anyOpen && (
+
+      {/* ── Content area — shifts left when sidebar opens ── */}
+      <div
+        style={{
+          paddingRight: menuOpen ? 'var(--sidebar-width)' : '0',
+          transition: 'padding-right 280ms cubic-bezier(0.4, 0, 0.2, 1)',
+          minHeight: '100vh',
+        }}
+      >
+        {children}
+      </div>
+
+      {/* ── View mode overlay — click to close sidebar and return focus ── */}
+      {menuOpen && (
         <div
-          onClick={closeAll}
-          style={{ position: 'fixed', inset: 0, zIndex: 25, background: 'transparent' }}
+          onClick={closeMenu}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            right: 'var(--sidebar-width)',
+            zIndex: 95,
+            cursor: 'text',
+          }}
         />
       )}
-      {exportOpen && (
-        <div
-          onClick={() => setExportOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 35, background: 'transparent' }}
-        />
-      )}
 
-      {/* ── Drive browser ── */}
-      <DriveBrowser isOpen={driveOpen} onClose={() => setDriveOpen(false)} />
-
-      {/* ── Sidebars ── */}
-      <LeftSidebar />
-      <RightSidebar />
-
-      {/* ── Edge triggers ── */}
-      <SidebarTrigger side="left"  isOpen={leftOpen}  onToggle={() => leftOpen  ? closeAll() : openLeft()} />
-      <SidebarTrigger side="right" isOpen={rightOpen} onToggle={() => rightOpen ? closeAll() : openRight()} />
-
-      {/* ── Drive trigger ── */}
+      {/* ── The dot ── */}
       <button
-        onClick={() => setDriveOpen((v) => !v)}
-        title="Google Drive (⌘⇧D)"
+        onClick={toggleMenu}
+        aria-label={menuOpen ? 'Close menu' : 'Open menu'}
         style={{
           position: 'fixed',
-          bottom: '1.4rem',
-          left: '3rem',
-          zIndex: 20,
-          background: 'none',
+          top: '24px',
+          right: '24px',
+          width: '32px',
+          height: '32px',
+          borderRadius: '50%',
+          background: 'var(--fg)',
           border: 'none',
           cursor: 'pointer',
-          padding: '6px',
-          borderRadius: '6px',
-          opacity: driveOpen ? 0.6 : 0.2,
-          transition: 'opacity 200ms ease-in-out',
-          color: 'var(--fg)',
-          display: 'flex',
-          alignItems: 'center',
+          zIndex: 200,
+          padding: 0,
+          transition: 'opacity 150ms',
+          opacity: menuOpen ? 0.5 : 1,
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.65' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = driveOpen ? '0.6' : '0.2' }}
-      >
-        <DriveIcon />
-      </button>
+      />
 
-      {/* ── Export trigger (bottom-center) ── */}
-      <button
-        onClick={() => setExportOpen((v) => !v)}
-        title="Export (⌘⇧E)"
-        style={{
-          position: 'fixed',
-          bottom: '1.4rem',
-          left: '1rem',
-          zIndex: 20,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '6px',
-          borderRadius: '6px',
-          opacity: exportOpen ? 0.6 : 0.2,
-          transition: 'opacity 200ms ease-in-out',
-          color: 'var(--fg)',
-          display: 'flex',
-          alignItems: 'center',
-        }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.65' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = exportOpen ? '0.6' : '0.2' }}
-      >
-        <ExportIcon />
-      </button>
-
-      {/* ── Export panel ── */}
-      <ExportPanel isOpen={exportOpen} onClose={() => setExportOpen(false)} />
-
-      {/* ── Keyboard help ── */}
-      <KeyboardHelp isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
-
-      {/* ── Page content ── */}
-      {children}
-
-      {/* ── Counters overlay ── */}
-      <Counters />
+      {/* ── Sidebar ── */}
+      <AppSidebar />
     </div>
-  )
-}
-
-// ── Trigger buttons ───────────────────────────────────────────────────────────
-
-function SidebarTrigger({ side, isOpen, onToggle }: {
-  side: 'left' | 'right'; isOpen: boolean; onToggle: () => void
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      title={side === 'left' ? 'Documents (⌘[)' : 'Settings (⌘])'}
-      style={{
-        position: 'fixed',
-        top: '1.25rem',
-        [side]: '1rem',
-        zIndex: 20,
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '6px',
-        borderRadius: '6px',
-        opacity: isOpen ? 0.6 : 0.2,
-        transition: 'opacity 200ms ease-in-out',
-        color: 'var(--fg)',
-        display: 'flex',
-        alignItems: 'center',
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.65' }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = isOpen ? '0.6' : '0.2' }}
-    >
-      {side === 'left' ? <LeftIcon /> : <RightIcon />}
-    </button>
-  )
-}
-
-function LeftIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="1" y="2" width="4" height="12" rx="1" fill="currentColor" opacity="0.9" />
-      <rect x="7" y="4" width="8" height="1.5" rx="0.75" fill="currentColor" opacity="0.5" />
-      <rect x="7" y="7.25" width="6" height="1.5" rx="0.75" fill="currentColor" opacity="0.5" />
-      <rect x="7" y="10.5" width="7" height="1.5" rx="0.75" fill="currentColor" opacity="0.5" />
-    </svg>
-  )
-}
-
-function RightIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5" opacity="0.9" />
-      <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.41 1.41M11.36 11.36l1.42 1.42M3.22 12.78l1.41-1.41M11.36 4.64l1.42-1.42"
-        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
-    </svg>
-  )
-}
-
-function ExportIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <path d="M7.5 1v9M4 6.5l3.5 3.5 3.5-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 11v2h11v-2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
-    </svg>
-  )
-}
-
-function DriveIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <path d="M5.5 2L1 10h4l4.5-8H5.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M9.5 2l4.5 8H10L5.5 2H9.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" opacity="0.7" />
-      <path d="M1 10l2.5 3h8L14 10H1z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" opacity="0.5" />
-    </svg>
   )
 }

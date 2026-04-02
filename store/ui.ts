@@ -1,21 +1,15 @@
 import { create } from 'zustand'
 
 interface UIStore {
-  leftOpen: boolean
-  rightOpen: boolean
-  showCounters: boolean
-  openLeft: () => void
-  openRight: () => void
-  closeAll: () => void
-  toggleCounters: () => void
+  menuOpen: boolean
+  openMenu: () => void
+  closeMenu: () => void
+  toggleMenu: () => void
 }
 
 export const useUIStore = create<UIStore>()((set) => ({
-  leftOpen: false,
-  rightOpen: false,
-  showCounters: false,
-  openLeft: () => set({ leftOpen: true, rightOpen: false }),
-  openRight: () => set({ rightOpen: true, leftOpen: false }),
-  closeAll: () => set({ leftOpen: false, rightOpen: false }),
-  toggleCounters: () => set((s) => ({ showCounters: !s.showCounters })),
+  menuOpen: false,
+  openMenu: () => set({ menuOpen: true }),
+  closeMenu: () => set({ menuOpen: false }),
+  toggleMenu: () => set((s) => ({ menuOpen: !s.menuOpen })),
 }))

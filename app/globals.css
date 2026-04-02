@@ -7,6 +7,8 @@
   --muted: #8a8a84;
   --subtle: #d4d4ce;
   --surface: #f0f0ec;
+  --sidebar-bg: #e4e4e0;   /* 10% darker than --bg */
+  --sidebar-width: 760px;
 
   /* Dark */
   --bg-dark: #111110;
@@ -27,6 +29,7 @@
   --fg: var(--fg-dark);
   --muted: var(--muted-dark);
   --subtle: var(--subtle-dark);
+  --sidebar-bg: #282826;   /* 10% lighter than --bg-dark */
 }
 
 [data-theme="shade"] {
@@ -34,6 +37,7 @@
   --fg: var(--fg-shade);
   --muted: var(--muted-shade);
   --subtle: var(--subtle-shade);
+  --sidebar-bg: #d8d4cc;   /* 10% darker than --bg-shade */
 }
 
 @theme inline {
@@ -51,6 +55,10 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {

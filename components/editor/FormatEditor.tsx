@@ -164,7 +164,7 @@ export function FormatEditor() {
       TableRow,
       TableCell,
       TableHeader,
-      Placeholder.configure({ placeholder: 'start writing, or type / for commands...' }),
+      Placeholder.configure({ placeholder: 'start writing…  type / for commands' }),
       Typography,
       SlashCommandExtension,
     ],
@@ -286,31 +286,6 @@ export function FormatEditor() {
           boxSizing: 'border-box',
         }}
       >
-        {/* ── Title ── */}
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value)
-            if (activeFormatId) updateDoc(activeFormatId, { title: e.target.value })
-          }}
-          placeholder="untitled"
-          style={{
-            display: 'block',
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            fontFamily,
-            fontSize: '11px',
-            letterSpacing: '0.06em',
-            color: '#8a8a84',
-            marginBottom: '3.5rem',
-            padding: 0,
-            textTransform: 'lowercase',
-          }}
-        />
-
         {/* ── Editor content ── */}
         <EditorContent editor={editor} />
       </div>
