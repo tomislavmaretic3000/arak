@@ -214,16 +214,20 @@ export function AppSidebar() {
 
         {/* ── Main level ── */}
         {level === 'main' && (
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
-            <MenuItem onClick={handleFormat}>
-              {isWrite ? 'Format' : 'Write'}
-            </MenuItem>
-            <MenuItem onClick={() => setLevel('save')}>Save</MenuItem>
-            <MenuItem onClick={() => setLevel('export')}>Export</MenuItem>
-            <MenuItem onClick={() => setLevel('open')}>Open</MenuItem>
-            <MenuItem onClick={handleNew}>New</MenuItem>
-            <MenuItem onClick={() => setLevel('recent')}>Recent</MenuItem>
-            <MenuItem onClick={() => setLevel('settings')}>Settings</MenuItem>
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '2.5em' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
+              <MenuItem onClick={handleFormat}>{isWrite ? 'Format' : 'Write'}</MenuItem>
+              <MenuItem onClick={() => setLevel('save')}>Save</MenuItem>
+              <MenuItem onClick={() => setLevel('export')}>Export</MenuItem>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
+              <MenuItem onClick={() => setLevel('open')}>Open</MenuItem>
+              <MenuItem onClick={handleNew}>New</MenuItem>
+              <MenuItem onClick={() => setLevel('recent')}>Recent</MenuItem>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
+              <MenuItem onClick={() => setLevel('settings')}>Settings</MenuItem>
+            </div>
           </nav>
         )}
 

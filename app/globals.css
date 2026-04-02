@@ -7,8 +7,8 @@
   --muted: #8a8a84;
   --subtle: #d4d4ce;
   --surface: #f0f0ec;
-  --sidebar-bg: #e4e4e0;   /* 10% darker than --bg */
-  --sidebar-width: 760px;
+  --sidebar-bg: #d9d9d5;   /* 15% darker than --bg */
+  --sidebar-width: 33.333vw;
 
   /* Dark */
   --bg-dark: #111110;
@@ -29,7 +29,7 @@
   --fg: var(--fg-dark);
   --muted: var(--muted-dark);
   --subtle: var(--subtle-dark);
-  --sidebar-bg: #282826;   /* 10% lighter than --bg-dark */
+  --sidebar-bg: #262624;   /* 5% darker */
 }
 
 [data-theme="shade"] {
@@ -37,7 +37,7 @@
   --fg: var(--fg-shade);
   --muted: var(--muted-shade);
   --subtle: var(--subtle-shade);
-  --sidebar-bg: #d8d4cc;   /* 10% darker than --bg-shade */
+  --sidebar-bg: #cec9c2;   /* 5% darker */
 }
 
 @theme inline {
@@ -190,4 +190,12 @@ body {
 
 [data-theme="shade"] .format-page-bg {
   background: #c8c2b6;
+}
+
+@media (max-width: 768px) {
+  .write-editor-container {
+    max-width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
 }

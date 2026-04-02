@@ -241,7 +241,7 @@ export function WriteEditor() {
   return (
     <div
       key={activeWriteId ?? 'write'}
-      className="content-enter"
+      className="content-enter write-editor-container"
       style={{
         maxWidth: '65ch',
         fontSize: fontSizePx,
