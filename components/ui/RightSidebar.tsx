@@ -1,14 +1,15 @@
 'use client'
 
 import { useUIStore } from '@/store/ui'
-import { useEditorStore, type Theme, type Font } from '@/store/editor'
+import { useEditorStore, type Theme, type Font, type SizeOption } from '@/store/editor'
+
 import { usePathname } from 'next/navigation'
 
 export function RightSidebar() {
   const { rightOpen } = useUIStore()
   const {
-    theme, font, focusMode, typewriterMode,
-    setTheme, setFont, toggleFocusMode, toggleTypewriterMode,
+    theme, font, focusMode, fontSize, lineHeight,
+    setTheme, setFont, toggleFocusMode, setFontSize, setLineHeight,
   } = useEditorStore()
   const pathname = usePathname()
   const isWrite = pathname === '/write'
@@ -44,7 +45,7 @@ export function RightSidebar() {
         />
       </Section>
 
-      {/* Font */}
+      {/* Font face */}
       <Section label="font">
         <SegmentedControl
           options={[
@@ -57,11 +58,36 @@ export function RightSidebar() {
         />
       </Section>
 
+      {/* Font size */}
+      <Section label="size">
+        <SegmentedControl
+          options={[
+            { value: 'small',  label: 'S' },
+            { value: 'medium', label: 'M' },
+            { value: 'large',  label: 'L' },
+          ]}
+          value={fontSize}
+          onChange={(v) => setFontSize(v as SizeOption)}
+        />
+      </Section>
+
+      {/* Line height */}
+      <Section label="line height">
+        <SegmentedControl
+          options={[
+            { value: 'small',  label: 'tight'  },
+            { value: 'medium', label: 'normal' },
+            { value: 'large',  label: 'loose'  },
+          ]}
+          value={lineHeight}
+          onChange={(v) => setLineHeight(v as SizeOption)}
+        />
+      </Section>
+
       {/* Write-mode only toggles */}
       {isWrite && (
         <Section label="writing">
           <Toggle label="focus mode" value={focusMode} onChange={toggleFocusMode} />
-          <Toggle label="typewriter" value={typewriterMode} onChange={toggleTypewriterMode} />
         </Section>
       )}
 

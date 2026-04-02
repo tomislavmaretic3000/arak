@@ -9,13 +9,13 @@ export interface DriveFile {
 }
 
 /** List recent plain-text and Google Docs files. */
-export async function listDriveFiles(token: string): Promise<DriveFile[]> {
-  const q = encodeURIComponent(
-    "(mimeType='text/plain' or mimeType='application/vnd.google-apps.document') and trashed=false"
-  )
+export async function listDriveFiles(token: string, query = ''): Promise<DriveFile[]> {
+  const base = "(mimeType='text/plain' or mimeType='application/vnd.google-apps.document') and trashed=false"
+  const filter = query ? ` and name contains '${query.replace(/'/g, "\\'")}'` : ''
+  const q = encodeURIComponent(base + filter)
   const fields = encodeURIComponent('files(id,name,mimeType,modifiedTime)')
   const res = await fetch(
-    `${DRIVE}/files?q=${q}&fields=${fields}&orderBy=modifiedTime+desc&pageSize=25`,
+    `${DRIVE}/files?q=${q}&fields=${fields}&orderBy=modifiedTime+desc&pageSize=100`,
     { headers: { Authorization: `Bearer ${token}` } }
   )
   if (!res.ok) throw new Error(`Drive list error: ${res.status}`)

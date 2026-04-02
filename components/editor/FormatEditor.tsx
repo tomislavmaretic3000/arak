@@ -16,7 +16,7 @@ import Suggestion, {
   type SuggestionKeyDownProps,
 } from '@tiptap/suggestion'
 import { useFormatStore } from '@/store/format'
-import { useEditorStore } from '@/store/editor'
+import { useEditorStore, FONT_SIZE_MAP } from '@/store/editor'
 import { useDocumentsStore } from '@/store/documents'
 import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommands'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
@@ -43,6 +43,7 @@ export function FormatEditor() {
   const { content, title, setContent, setTitle, markSaved, markDirty } =
     useFormatStore()
   const font = useEditorStore((s) => s.font)
+  const fontSize = useEditorStore((s) => s.fontSize)
   const { docs, activeFormatId, createDoc, updateDoc } = useDocumentsStore()
 
   // Bootstrap format doc on first mount
@@ -179,11 +180,11 @@ export function FormatEditor() {
       attributes: {
         style: [
           `font-family: ${fontFamily}`,
-          'font-size: 18px',
-          'line-height: 1.75',
+          `font-size: ${FONT_SIZE_MAP[fontSize]}`,
+          'line-height: 1.65',
           'letter-spacing: 0.01em',
           'outline: none',
-          'min-height: 60vh',
+          'color: #1a1a18',
         ].join(';'),
       },
     },
@@ -233,6 +234,22 @@ export function FormatEditor() {
     return () => { editor.off('selectionUpdate', update) }
   }, [editor])
 
+  // ── Sync font/size changes to editor ─────────────────────────────────────
+  useEffect(() => {
+    if (!editor) return
+    editor.view.dom.setAttribute(
+      'style',
+      [
+        `font-family: ${fontFamily}`,
+        `font-size: ${FONT_SIZE_MAP[fontSize]}`,
+        'line-height: 1.65',
+        'letter-spacing: 0.01em',
+        'outline: none',
+        'color: #1a1a18',
+      ].join(';')
+    )
+  }, [editor, fontFamily, fontSize])
+
   // ── Autosave on idle ──────────────────────────────────────────────────────
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -254,32 +271,49 @@ export function FormatEditor() {
   if (!editor) return null
 
   return (
-    <div style={{ maxWidth: '65ch', margin: '0 auto', padding: '18vh 2rem 45vh' }}>
-      {/* ── Title ── */}
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => {
-          setTitle(e.target.value)
-          if (activeFormatId) updateDoc(activeFormatId, { title: e.target.value })
-        }}
-        placeholder="untitled"
+    <div key={activeFormatId ?? 'format'} className="format-page-bg content-enter">
+      {/* ── A4 paper ── */}
+      <div
         style={{
-          display: 'block',
           width: '100%',
-          background: 'transparent',
-          border: 'none',
-          outline: 'none',
-          fontFamily,
-          fontSize: '13px',
-          letterSpacing: '0.04em',
-          color: 'var(--muted)',
-          opacity: 0.6,
-          marginBottom: '3rem',
-          padding: 0,
-          textTransform: 'lowercase',
+          maxWidth: '794px',
+          minHeight: '1123px',
+          margin: '0 auto',
+          background: '#fff',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10), 0 12px 40px rgba(0,0,0,0.08)',
+          borderRadius: '2px',
+          padding: '96px 108px',
+          boxSizing: 'border-box',
         }}
-      />
+      >
+        {/* ── Title ── */}
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => {
+            setTitle(e.target.value)
+            if (activeFormatId) updateDoc(activeFormatId, { title: e.target.value })
+          }}
+          placeholder="untitled"
+          style={{
+            display: 'block',
+            width: '100%',
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            fontFamily,
+            fontSize: '11px',
+            letterSpacing: '0.06em',
+            color: '#8a8a84',
+            marginBottom: '3.5rem',
+            padding: 0,
+            textTransform: 'lowercase',
+          }}
+        />
+
+        {/* ── Editor content ── */}
+        <EditorContent editor={editor} />
+      </div>
 
       {/* ── Bubble toolbar (appears on text selection) ── */}
       {bubblePos && (
@@ -292,11 +326,11 @@ export function FormatEditor() {
             zIndex: 40,
             display: 'flex',
             gap: '1px',
-            background: 'var(--bg)',
-            border: '1px solid var(--subtle)',
+            background: '#fff',
+            border: '1px solid #d4d4ce',
             borderRadius: '7px',
             padding: '3px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
             fontFamily: 'var(--font-noto-sans)',
             animation: 'fadeIn 150ms ease-in-out',
           }}
@@ -315,13 +349,13 @@ export function FormatEditor() {
               title={t}
               onMouseDown={(e) => { e.preventDefault(); action() }}
               style={{
-                background: active ? 'var(--surface)' : 'transparent',
+                background: active ? '#f0f0ec' : 'transparent',
                 border: 'none',
                 borderRadius: '5px',
                 cursor: 'pointer',
                 padding: '4px 7px',
                 fontSize: '12px',
-                color: active ? 'var(--fg)' : 'var(--muted)',
+                color: active ? '#1a1a18' : '#8a8a84',
                 fontFamily: 'var(--font-noto-sans)',
                 transition: 'background 120ms, color 120ms',
                 ...style,
@@ -333,9 +367,6 @@ export function FormatEditor() {
         </div>
       )}
 
-      {/* ── Editor content ── */}
-      <EditorContent editor={editor} />
-
       {/* ── Slash command menu ── */}
       {slashMenu && slashMenu.items.length > 0 && (
         <div
@@ -344,10 +375,10 @@ export function FormatEditor() {
             top: slashMenu.rect.bottom + 6,
             left: slashMenu.rect.left,
             zIndex: 50,
-            background: 'var(--bg)',
-            border: '1px solid var(--subtle)',
+            background: '#fff',
+            border: '1px solid #d4d4ce',
             borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
             padding: '4px',
             minWidth: '220px',
             fontFamily: 'var(--font-noto-sans)',
@@ -365,7 +396,7 @@ export function FormatEditor() {
                 alignItems: 'center',
                 gap: '12px',
                 width: '100%',
-                background: i === slashMenu.selectedIdx ? 'var(--surface)' : 'transparent',
+                background: i === slashMenu.selectedIdx ? '#f0f0ec' : 'transparent',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -374,23 +405,14 @@ export function FormatEditor() {
                 transition: 'background 100ms',
               }}
             >
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: 'var(--muted)',
-                  width: '24px',
-                  textAlign: 'center',
-                  flexShrink: 0,
-                }}
-              >
+              <span style={{ fontSize: '12px', fontWeight: 500, color: '#8a8a84', width: '24px', textAlign: 'center', flexShrink: 0 }}>
                 {item.label}
               </span>
               <span>
-                <span style={{ fontSize: '13px', color: 'var(--fg)', display: 'block' }}>
+                <span style={{ fontSize: '13px', color: '#1a1a18', display: 'block' }}>
                   {item.title}
                 </span>
-                <span style={{ fontSize: '11px', color: 'var(--muted)', display: 'block', marginTop: '1px' }}>
+                <span style={{ fontSize: '11px', color: '#8a8a84', display: 'block', marginTop: '1px' }}>
                   {item.description}
                 </span>
               </span>

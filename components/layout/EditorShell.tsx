@@ -1,18 +1,28 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
+import { useDocumentsStore } from '@/store/documents'
+import { useEditorStore } from '@/store/editor'
+import { useFilesStore } from '@/store/files'
 import { LeftSidebar } from '@/components/ui/LeftSidebar'
 import { RightSidebar } from '@/components/ui/RightSidebar'
 import { Counters } from '@/components/ui/Counters'
 import { ExportPanel } from '@/components/ui/ExportPanel'
-import { DrivePanel } from '@/components/ui/DrivePanel'
+import { DriveBrowser } from '@/components/ui/DriveBrowser'
+import { KeyboardHelp } from '@/components/ui/KeyboardHelp'
+import { DocumentTitle } from '@/components/editor/DocumentTitle'
 
 export function EditorShell({ children }: { children: React.ReactNode }) {
   const { leftOpen, rightOpen, openLeft, openRight, closeAll } = useUIStore()
   const anyOpen = leftOpen || rightOpen
   const [exportOpen, setExportOpen] = useState(false)
   const [driveOpen, setDriveOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+
+  const router = useRouter()
+  const pathname = usePathname()
 
   // ── Global keyboard shortcuts ─────────────────────────────────────────────
   useEffect(() => {
@@ -20,9 +30,32 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
       const mod = e.metaKey || e.ctrlKey
       if (mod && e.key === '[') { e.preventDefault(); leftOpen ? closeAll() : openLeft(); return }
       if (mod && e.key === ']') { e.preventDefault(); rightOpen ? closeAll() : openRight(); return }
-      if (mod && e.shiftKey && e.key === 'e') { e.preventDefault(); setExportOpen((v) => !v); return }
-      if (mod && e.shiftKey && e.key === 'd') { e.preventDefault(); setDriveOpen((v) => !v); return }
+      if (mod && e.shiftKey && e.key === 'E') { e.preventDefault(); setExportOpen((v) => !v); return }
+      if (mod && e.shiftKey && e.key === 'D') { e.preventDefault(); setDriveOpen((v) => !v); return }
+      if (mod && e.key === '/') {
+        e.preventDefault()
+        setHelpOpen((v) => !v)
+        return
+      }
+      if (mod && !e.shiftKey && e.key === 'n') {
+        e.preventDefault()
+        const { createDoc } = useDocumentsStore.getState()
+        if (pathname === '/write') {
+          const doc = createDoc('write')
+          useEditorStore.getState().setContent('')
+          useFilesStore.getState().setTitle('untitled')
+          useDocumentsStore.getState().setActiveWrite(doc.id)
+          router.push('/write')
+        } else {
+          const doc = createDoc('format')
+          useDocumentsStore.getState().setActiveFormat(doc.id)
+          router.push('/format')
+        }
+        closeAll()
+        return
+      }
       if (e.key === 'Escape') {
+        if (helpOpen) { setHelpOpen(false); return }
         if (anyOpen) { closeAll(); return }
         if (exportOpen) { setExportOpen(false); return }
         if (driveOpen) { setDriveOpen(false); return }
@@ -30,10 +63,11 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [leftOpen, rightOpen, anyOpen, exportOpen, openLeft, openRight, closeAll])
+  }, [leftOpen, rightOpen, anyOpen, exportOpen, driveOpen, helpOpen, openLeft, openRight, closeAll, router, pathname])
 
   return (
     <div style={{ minHeight: '100vh' }}>
+      <DocumentTitle />
       {/* ── Backdrop ── */}
       {anyOpen && (
         <div
@@ -48,8 +82,8 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* ── Drive panel ── */}
-      <DrivePanel isOpen={driveOpen} onClose={() => setDriveOpen(false)} />
+      {/* ── Drive browser ── */}
+      <DriveBrowser isOpen={driveOpen} onClose={() => setDriveOpen(false)} />
 
       {/* ── Sidebars ── */}
       <LeftSidebar />
@@ -113,6 +147,9 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Export panel ── */}
       <ExportPanel isOpen={exportOpen} onClose={() => setExportOpen(false)} />
+
+      {/* ── Keyboard help ── */}
+      <KeyboardHelp isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
 
       {/* ── Page content ── */}
       {children}

@@ -37,6 +37,22 @@ export function parseSentences(text: string): TextSegment[] {
 }
 
 /**
+ * Split text into paragraph segments (split on every \n).
+ */
+export function parseParagraphs(text: string): TextSegment[] {
+  if (!text) return []
+  const segments: TextSegment[] = []
+  const parts = text.split('\n')
+  let pos = 0
+  for (let i = 0; i < parts.length; i++) {
+    const withNewline = parts[i] + (i < parts.length - 1 ? '\n' : '')
+    segments.push({ text: withNewline, start: pos, end: pos + withNewline.length })
+    pos += withNewline.length
+  }
+  return segments
+}
+
+/**
  * Return the index of the segment that contains the cursor position.
  */
 export function getCurrentSegmentIndex(

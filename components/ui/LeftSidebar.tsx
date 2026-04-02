@@ -1,55 +1,68 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
 import { useDocumentsStore, type DocEntry } from '@/store/documents'
 import { useEditorStore } from '@/store/editor'
 import { useFilesStore } from '@/store/files'
 
-function timeLabel(ts: number): string {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function dateLabel(ts: number): string {
   const s = Math.floor((Date.now() - ts) / 1000)
   if (s < 60) return 'just now'
   const m = Math.floor(s / 60)
   if (m < 60) return `${m}m ago`
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}d ago`
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+function getPreview(content: DocEntry['content']): string {
+  if (!content) return ''
+  if (typeof content === 'string') return content.trim().slice(0, 140)
+  // TipTap JSON — walk nodes for text
+  function walk(node: Record<string, unknown>): string {
+    if (node.type === 'text') return (node.text as string) ?? ''
+    const children = (node.content as Record<string, unknown>[]) ?? []
+    return children.map(walk).join(' ')
+  }
+  return walk(content as Record<string, unknown>).trim().slice(0, 140)
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function LeftSidebar() {
   const { leftOpen, closeAll } = useUIStore()
-  const pathname = usePathname()
   const router = useRouter()
   const [query, setQuery] = useState('')
 
   const { docs, activeWriteId, activeFormatId, createDoc, removeDoc, setActiveWrite, setActiveFormat } =
     useDocumentsStore()
 
-  const writeDocs = docs.filter(
-    (d) => d.mode === 'write' && d.title.toLowerCase().includes(query.toLowerCase())
-  )
-  const formatDocs = docs.filter(
-    (d) => d.mode === 'format' && d.title.toLowerCase().includes(query.toLowerCase())
-  )
+  const allDocs = docs
+    .filter((d) => !query || d.title.toLowerCase().includes(query.toLowerCase()) ||
+      getPreview(d.content).toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+
+  const activeId = activeWriteId || activeFormatId
 
   const handleNewWrite = () => {
     const doc = createDoc('write')
-    // Clear editor for new doc
     useEditorStore.getState().setContent('')
     useFilesStore.getState().setTitle('untitled')
     router.push('/write')
-    closeAll()
   }
 
   const handleNewFormat = () => {
-    createDoc('format')
+    const doc = createDoc('format')
     router.push('/format')
-    closeAll()
   }
 
-  const handleSelectDoc = (doc: DocEntry) => {
+  const handleSelect = (doc: DocEntry) => {
     if (doc.mode === 'write') {
       setActiveWrite(doc.id)
       router.push('/write')
@@ -57,7 +70,7 @@ export function LeftSidebar() {
       setActiveFormat(doc.id)
       router.push('/format')
     }
-    closeAll()
+    // intentionally NOT closing sidebar — user browses files
   }
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
@@ -65,210 +78,136 @@ export function LeftSidebar() {
     removeDoc(id)
   }
 
-  const isWriteActive = pathname === '/write'
-  const isFormatActive = pathname === '/format'
-
   return (
-    <>
-      {/* Slide-in panel */}
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        bottom: 0,
+        width: '480px',
+        zIndex: 30,
+        background: 'var(--bg)',
+        borderRight: '1px solid var(--subtle)',
+        transform: leftOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition: 'transform 180ms ease-in-out',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      {/* ── Header ── */}
       <div
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: '240px',
-          zIndex: 30,
-          background: 'var(--bg)',
-          borderRight: '1px solid var(--subtle)',
-          transform: leftOpen ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 160ms ease-in-out',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
-        {/* App name */}
-        <div
-          style={{
-            padding: '1.5rem 1.25rem 1rem',
-            fontFamily: 'var(--font-noto-sans)',
-            fontSize: '13px',
-            fontWeight: 500,
-            letterSpacing: '0.08em',
-            color: 'var(--fg)',
-            opacity: 0.5,
-          }}
-        >
-          arak
-        </div>
-
-        {/* Mode switcher */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '4px',
-            padding: '0 1rem 1rem',
-          }}
-        >
-          {[
-            { label: 'write', href: '/write', active: isWriteActive },
-            { label: 'format', href: '/format', active: isFormatActive },
-          ].map(({ label, href, active }) => (
-            <Link
-              key={label}
-              href={href}
-              onClick={closeAll}
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                padding: '5px 0',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontFamily: 'var(--font-noto-sans)',
-                letterSpacing: '0.03em',
-                color: active ? 'var(--fg)' : 'var(--muted)',
-                background: active ? 'var(--surface)' : 'transparent',
-                textDecoration: 'none',
-                transition: 'background 120ms, color 120ms',
-              }}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-
-        <div style={{ height: '1px', background: 'var(--subtle)', margin: '0 1rem' }} />
-
-        {/* Search */}
-        <div style={{ padding: '0.75rem 1rem' }}>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="filter..."
-            style={{
-              width: '100%',
-              background: 'var(--surface)',
-              border: '1px solid var(--subtle)',
-              borderRadius: '6px',
-              padding: '5px 8px',
-              fontSize: '12px',
-              fontFamily: 'var(--font-noto-sans)',
-              color: 'var(--fg)',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        {/* Scrollable doc list */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 0.5rem' }}>
-          {/* Write docs */}
-          <DocSection
-            label="write"
-            docs={writeDocs}
-            activeId={activeWriteId}
-            onSelect={handleSelectDoc}
-            onDelete={handleDelete}
-            onNew={handleNewWrite}
-          />
-
-          {/* Format docs */}
-          <DocSection
-            label="format"
-            docs={formatDocs}
-            activeId={activeFormatId}
-            onSelect={handleSelectDoc}
-            onDelete={handleDelete}
-            onNew={handleNewFormat}
-          />
-        </div>
-      </div>
-    </>
-  )
-}
-
-function DocSection({
-  label,
-  docs,
-  activeId,
-  onSelect,
-  onDelete,
-  onNew,
-}: {
-  label: string
-  docs: DocEntry[]
-  activeId: string | null
-  onSelect: (doc: DocEntry) => void
-  onDelete: (e: React.MouseEvent, id: string) => void
-  onNew: () => void
-}) {
-  return (
-    <div style={{ marginBottom: '1rem' }}>
-      <div
-        style={{
+          padding: '1.25rem 1.5rem 0.75rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0.25rem 0.75rem',
-          marginBottom: '2px',
+          flexShrink: 0,
         }}
       >
         <span
           style={{
-            fontSize: '10px',
             fontFamily: 'var(--font-noto-sans)',
-            letterSpacing: '0.08em',
-            color: 'var(--muted)',
-            textTransform: 'uppercase',
+            fontSize: '12px',
+            fontWeight: 500,
+            letterSpacing: '0.1em',
+            color: 'var(--fg)',
+            opacity: 0.4,
           }}
         >
-          {label}
+          arak
         </span>
+
+        {/* New doc buttons */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <NewBtn label="+ write" onClick={handleNewWrite} />
+          <NewBtn label="+ format" onClick={handleNewFormat} />
+        </div>
+      </div>
+
+      {/* ── Filter ── */}
+      <div style={{ padding: '0.5rem 1.5rem 0.75rem', flexShrink: 0 }}>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="filter..."
+          style={{
+            width: '100%',
+            background: 'var(--surface)',
+            border: '1px solid var(--subtle)',
+            borderRadius: '6px',
+            padding: '6px 10px',
+            fontSize: '12px',
+            fontFamily: 'var(--font-noto-sans)',
+            color: 'var(--fg)',
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
+
+      <div style={{ height: '1px', background: 'var(--subtle)', flexShrink: 0 }} />
+
+      {/* ── File list ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0.75rem 2rem' }}>
+        {allDocs.length === 0 && (
+          <p
+            style={{
+              fontFamily: 'var(--font-noto-sans)',
+              fontSize: '12px',
+              color: 'var(--muted)',
+              padding: '1rem 0.75rem',
+              opacity: 0.6,
+            }}
+          >
+            no documents
+          </p>
+        )}
+        {allDocs.map((doc) => (
+          <DocRow
+            key={doc.id}
+            doc={doc}
+            isActive={doc.id === activeId}
+            onSelect={handleSelect}
+            onDelete={handleDelete}
+          />
+        ))}
+      </div>
+
+      {/* ── Close hint ── */}
+      <div
+        style={{
+          padding: '0.75rem 1.5rem',
+          borderTop: '1px solid var(--subtle)',
+          flexShrink: 0,
+          display: 'flex',
+          justifyContent: 'flex-end',
+        }}
+      >
         <button
-          onClick={onNew}
-          title={`New ${label} document`}
+          onClick={closeAll}
           style={{
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'var(--muted)',
-            fontSize: '16px',
-            lineHeight: 1,
-            padding: '0 2px',
-          }}
-        >
-          +
-        </button>
-      </div>
-
-      {docs.length === 0 && (
-        <div
-          style={{
-            padding: '4px 0.75rem',
-            fontSize: '12px',
+            fontFamily: 'var(--font-noto-sans)',
+            fontSize: '11px',
             color: 'var(--muted)',
             opacity: 0.5,
-            fontFamily: 'var(--font-noto-sans)',
+            letterSpacing: '0.04em',
+            padding: '2px 0',
           }}
         >
-          no documents
-        </div>
-      )}
-
-      {docs.map((doc) => (
-        <DocRow
-          key={doc.id}
-          doc={doc}
-          isActive={doc.id === activeId}
-          onSelect={onSelect}
-          onDelete={onDelete}
-        />
-      ))}
+          close ⌘[
+        </button>
+      </div>
     </div>
   )
 }
+
+// ── DocRow ────────────────────────────────────────────────────────────────────
 
 function DocRow({
   doc,
@@ -282,6 +221,8 @@ function DocRow({
   onDelete: (e: React.MouseEvent, id: string) => void
 }) {
   const [hovered, setHovered] = useState(false)
+  const preview = getPreview(doc.content)
+  const trimmed = preview.length >= 140 ? preview.slice(0, 120) + '...' : preview
 
   return (
     <div
@@ -289,61 +230,119 @@ function DocRow({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '6px 0.75rem',
-        borderRadius: '6px',
+        padding: '0.85rem 0.75rem',
+        borderRadius: '8px',
         cursor: 'pointer',
-        background: isActive ? 'var(--surface)' : hovered ? 'var(--surface)' : 'transparent',
-        transition: 'background 100ms',
+        background: isActive
+          ? 'var(--fg)'
+          : hovered
+          ? 'var(--surface)'
+          : 'transparent',
+        marginBottom: '2px',
+        transition: 'background 120ms ease-in-out',
       }}
     >
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div
+      {/* Preview text */}
+      {trimmed && (
+        <p
           style={{
-            fontSize: '13px',
             fontFamily: 'var(--font-noto-sans)',
-            color: 'var(--fg)',
+            fontSize: '12px',
+            lineHeight: '1.55',
+            color: isActive ? 'var(--bg)' : 'var(--muted)',
+            opacity: isActive ? 0.7 : 0.75,
+            margin: '0 0 0.5rem',
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {trimmed}
+        </p>
+      )}
+
+      {/* Footer: title + date + delete */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--font-noto-sans)',
+            fontSize: '12px',
+            fontWeight: 500,
+            color: isActive ? 'var(--bg)' : 'var(--fg)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            opacity: isActive ? 1 : 0.8,
+            flex: 1,
           }}
         >
           {doc.title || 'untitled'}
-        </div>
-        <div
-          style={{
-            fontSize: '10px',
-            color: 'var(--muted)',
-            fontFamily: 'var(--font-noto-sans)',
-            marginTop: '1px',
-          }}
-        >
-          {timeLabel(doc.updatedAt)}
-        </div>
-      </div>
+        </span>
 
-      {hovered && (
-        <button
-          onClick={(e) => onDelete(e, doc.id)}
-          title="Delete"
+        <span
           style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--muted)',
-            fontSize: '14px',
-            padding: '0 2px',
-            marginLeft: '4px',
+            fontFamily: 'var(--font-noto-sans)',
+            fontSize: '10px',
+            color: isActive ? 'var(--bg)' : 'var(--muted)',
             opacity: 0.6,
+            whiteSpace: 'nowrap',
             flexShrink: 0,
           }}
         >
-          ×
-        </button>
-      )}
+          {doc.mode === 'format' ? 'fmt · ' : ''}{dateLabel(doc.updatedAt)}
+        </span>
+
+        {hovered && (
+          <button
+            onClick={(e) => onDelete(e, doc.id)}
+            title="Delete"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: isActive ? 'var(--bg)' : 'var(--muted)',
+              fontSize: '14px',
+              padding: '0 2px',
+              opacity: 0.5,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        )}
+      </div>
     </div>
+  )
+}
+
+// ── NewBtn ────────────────────────────────────────────────────────────────────
+
+function NewBtn({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'none',
+        border: '1px solid var(--subtle)',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontFamily: 'var(--font-noto-sans)',
+        fontSize: '11px',
+        color: 'var(--muted)',
+        padding: '3px 8px',
+        letterSpacing: '0.02em',
+        transition: 'border-color 120ms, color 120ms',
+      }}
+    >
+      {label}
+    </button>
   )
 }

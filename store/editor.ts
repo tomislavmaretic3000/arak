@@ -3,18 +3,21 @@ import { persist } from 'zustand/middleware'
 
 export type Theme = 'light' | 'dark' | 'shade'
 export type Font = 'sans' | 'serif' | 'mono'
+export type SizeOption = 'small' | 'medium' | 'large'
 
 interface EditorStore {
   content: string
   focusMode: boolean
-  typewriterMode: boolean
   theme: Theme
   font: Font
+  fontSize: SizeOption
+  lineHeight: SizeOption
   setContent: (content: string) => void
   toggleFocusMode: () => void
-  toggleTypewriterMode: () => void
   setTheme: (theme: Theme) => void
   setFont: (font: Font) => void
+  setFontSize: (v: SizeOption) => void
+  setLineHeight: (v: SizeOption) => void
 }
 
 export const useEditorStore = create<EditorStore>()(
@@ -22,15 +25,31 @@ export const useEditorStore = create<EditorStore>()(
     (set) => ({
       content: '',
       focusMode: true,
-      typewriterMode: true,
       theme: 'light',
       font: 'serif',
+      fontSize: 'medium',
+      lineHeight: 'medium',
       setContent: (content) => set({ content }),
       toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
-      toggleTypewriterMode: () => set((s) => ({ typewriterMode: !s.typewriterMode })),
       setTheme: (theme) => set({ theme }),
       setFont: (font) => set({ font }),
+      setFontSize: (fontSize) => set({ fontSize }),
+      setLineHeight: (lineHeight) => set({ lineHeight }),
     }),
     { name: 'arak-editor' }
   )
 )
+
+// ── Display value maps ────────────────────────────────────────────────────────
+
+export const FONT_SIZE_MAP: Record<SizeOption, string> = {
+  small: '20px',
+  medium: '28px',
+  large: '34px',
+}
+
+export const LINE_HEIGHT_MAP: Record<SizeOption, string> = {
+  small: '1.5',
+  medium: '1.75',
+  large: '2.2',
+}
