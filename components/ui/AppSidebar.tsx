@@ -208,6 +208,7 @@ export function AppSidebar() {
         flexDirection: 'column',
         overflowY: 'auto',
         overflowX: 'hidden',
+        scrollBehavior: 'smooth',
       }}
     >
       <div style={{ padding: '72px 40px 48px', flex: 1 }}>
