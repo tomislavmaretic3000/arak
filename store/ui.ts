@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 interface UIStore {
   menuOpen: boolean
@@ -7,9 +8,14 @@ interface UIStore {
   toggleMenu: () => void
 }
 
-export const useUIStore = create<UIStore>()((set) => ({
-  menuOpen: false,
-  openMenu: () => set({ menuOpen: true }),
-  closeMenu: () => set({ menuOpen: false }),
-  toggleMenu: () => set((s) => ({ menuOpen: !s.menuOpen })),
-}))
+export const useUIStore = create<UIStore>()(
+  persist(
+    (set) => ({
+      menuOpen: false,
+      openMenu: () => set({ menuOpen: true }),
+      closeMenu: () => set({ menuOpen: false }),
+      toggleMenu: () => set((s) => ({ menuOpen: !s.menuOpen })),
+    }),
+    { name: 'arak-ui' }
+  )
+)
