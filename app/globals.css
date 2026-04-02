@@ -2,12 +2,12 @@
 
 /* ── Base tokens (light theme) ── */
 :root {
-  --bg: #fafaf8;
+  --bg: #fafafa;
   --fg: #1a1a18;
   --muted: #8a8a84;
   --subtle: #d4d4ce;
   --surface: #f0f0ec;
-  --sidebar-bg: #d9d9d5;   /* 15% darker than --bg */
+  --sidebar-bg: #ebebeb;
   --sidebar-width: 33.333vw;
 
   /* Dark */
@@ -15,12 +15,14 @@
   --fg-dark: #e8e8e4;
   --muted-dark: #6a6a66;
   --subtle-dark: #2e2e2c;
+  --sidebar-bg-dark: #1f1f1d;
 
   /* Shade */
-  --bg-shade: #f0ece4;
+  --bg-shade: #f1ede5;
   --fg-shade: #2a2620;
   --muted-shade: #7a7268;
   --subtle-shade: #c8c0b4;
+  --sidebar-bg-shade: #e4e0d8;
 }
 
 /* ── Theme cascades ── */
@@ -29,7 +31,7 @@
   --fg: var(--fg-dark);
   --muted: var(--muted-dark);
   --subtle: var(--subtle-dark);
-  --sidebar-bg: #262624;   /* 5% darker */
+  --sidebar-bg: var(--sidebar-bg-dark);
 }
 
 [data-theme="shade"] {
@@ -37,7 +39,7 @@
   --fg: var(--fg-shade);
   --muted: var(--muted-shade);
   --subtle: var(--subtle-shade);
-  --sidebar-bg: #cec9c2;   /* 5% darker */
+  --sidebar-bg: var(--sidebar-bg-shade);
 }
 
 @theme inline {
