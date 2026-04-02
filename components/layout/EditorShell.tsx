@@ -50,6 +50,7 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
       <button
         onClick={toggleMenu}
         aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+        className="dot-btn"
         style={{
           position: 'fixed',
           top: '24px',
@@ -62,7 +63,7 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
           cursor: 'pointer',
           zIndex: 200,
           padding: 0,
-          transition: 'opacity 150ms',
+          transition: 'opacity 150ms, transform 150ms',
           opacity: menuOpen ? 0.5 : 1,
           willChange: 'transform',
           transform: 'translateZ(0)',

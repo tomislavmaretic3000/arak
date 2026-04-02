@@ -83,6 +83,10 @@ body {
   background: rgba(100, 100, 90, 0.15);
 }
 
+.dot-btn:hover {
+  transform: scale(1.15) translateZ(0) !important;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 0;

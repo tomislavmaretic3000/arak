@@ -517,7 +517,7 @@ function RecentItem({
       {trimmed && (
         <p style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '14px',
+          fontSize: '16px',
           lineHeight: 1.2,
           color: 'var(--fg)',
           margin: '0 0 4px',
@@ -529,7 +529,7 @@ function RecentItem({
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
         <span style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '14px',
+          fontSize: '16px',
           lineHeight: 1.2,
           fontWeight: 500,
           color: 'var(--fg)',
@@ -541,7 +541,7 @@ function RecentItem({
         </span>
         <span style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '14px',
+          fontSize: '16px',
           lineHeight: 1.2,
           color: 'var(--muted)',
           whiteSpace: 'nowrap',
