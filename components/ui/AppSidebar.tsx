@@ -208,7 +208,6 @@ export function AppSidebar() {
         flexDirection: 'column',
         overflowY: 'auto',
         overflowX: 'hidden',
-        scrollBehavior: 'smooth',
       }}
     >
       <div className="sidebar-inner" style={{ padding: '18vh 40px 48px 80px', flex: 1 }}>

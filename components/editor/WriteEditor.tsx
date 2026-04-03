@@ -97,7 +97,7 @@ export function WriteEditor() {
     ta.focus()
     ta.setSelectionRange(match.start, match.end)
     setCursorPos(match.start)
-    ta.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    ta.scrollIntoView({ block: 'center' })
   }, [currentMatchIndex, matches, searchOpen])
 
   // ── File operations ───────────────────────────────────────────────────────
