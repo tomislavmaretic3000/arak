@@ -100,27 +100,39 @@ export function FormatEditor() {
           prev ? { ...prev, items: props.items, command: props.command, rect, selectedIdx: 0 } : null
         )
       },
-      onKeyDown: ({ event }) => {
-        const menu = slashMenuRef.current
-        if (!menu || menu.items.length === 0) return false
-        if (event.key === 'ArrowUp') {
-          setSlashMenu((m) => m ? { ...m, selectedIdx: (m.selectedIdx - 1 + m.items.length) % m.items.length } : null)
-          return true
-        }
-        if (event.key === 'ArrowDown') {
-          setSlashMenu((m) => m ? { ...m, selectedIdx: (m.selectedIdx + 1) % m.items.length } : null)
-          return true
-        }
-        if (event.key === 'Enter') {
-          const item = menu.items[menu.selectedIdx]
-          if (item) menu.command(item)
-          return true
-        }
-        return false
-      },
+      onKeyDown: () => false,
       onExit: () => setSlashMenu(null),
     }
   })
+
+  // ── Slash menu keyboard navigation ───────────────────────────────────────
+  useEffect(() => {
+    if (!slashMenu) return
+    const onKey = (e: KeyboardEvent) => {
+      const menu = slashMenuRef.current
+      if (!menu || menu.items.length === 0) return
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        e.stopPropagation()
+        setSlashMenu((m) => m ? { ...m, selectedIdx: (m.selectedIdx + 1) % m.items.length } : null)
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        e.stopPropagation()
+        setSlashMenu((m) => m ? { ...m, selectedIdx: (m.selectedIdx - 1 + m.items.length) % m.items.length } : null)
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        e.stopPropagation()
+        const item = menu.items[menu.selectedIdx]
+        if (item) menu.command(item)
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        setSlashMenu(null)
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [slashMenu])
 
   const SlashCommandExtension = useMemo(
     () =>
