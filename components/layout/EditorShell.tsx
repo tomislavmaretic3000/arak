@@ -8,14 +8,15 @@ import { DocumentTitle } from '@/components/editor/DocumentTitle'
 export function EditorShell({ children }: { children: React.ReactNode }) {
   const { menuOpen, closeMenu, toggleMenu } = useUIStore()
 
-  // Escape closes the menu
+  // Escape closes; Cmd+Space toggles
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && menuOpen) closeMenu()
+      if (e.key === ' ' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); toggleMenu() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [menuOpen, closeMenu])
+  }, [menuOpen, closeMenu, toggleMenu])
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>
