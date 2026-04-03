@@ -194,6 +194,7 @@ export function AppSidebar() {
 
   return (
     <div
+      data-lenis-prevent
       style={{
         position: 'fixed',
         top: 0,
