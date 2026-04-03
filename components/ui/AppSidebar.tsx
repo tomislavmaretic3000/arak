@@ -211,7 +211,7 @@ export function AppSidebar() {
         scrollBehavior: 'smooth',
       }}
     >
-      <div style={{ padding: '18vh 40px 48px 80px', flex: 1 }}>
+      <div className="sidebar-inner" style={{ padding: '18vh 40px 48px 80px', flex: 1 }}>
 
         {/* ── Main level ── */}
         {level === 'main' && (
@@ -344,6 +344,7 @@ export function AppSidebar() {
                     onClick={() => {
                       if (doc.mode === 'write') { setActiveWrite(doc.id); router.push('/write') }
                       else { setActiveFormat(doc.id); router.push('/format') }
+                      if (window.innerWidth <= 768) closeMenu()
                     }}
                   />
                 )

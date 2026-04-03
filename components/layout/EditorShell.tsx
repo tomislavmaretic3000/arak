@@ -23,6 +23,7 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Content area — shifts left when sidebar opens ── */}
       <div
+        className="content-area"
         style={{
           paddingRight: menuOpen ? 'var(--sidebar-width)' : '0',
           transition: 'padding-right 280ms cubic-bezier(0.4, 0, 0.2, 1)',

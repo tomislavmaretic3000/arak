@@ -210,6 +210,17 @@ body {
   :root {
     --sidebar-width: 100vw;
   }
+  .content-area {
+    padding-right: 0 !important;
+  }
+  .sidebar-inner {
+    padding-left: 25px !important;
+    padding-right: 25px !important;
+  }
+  .dot-btn {
+    width: 26px !important;
+    height: 26px !important;
+  }
   .write-editor-container {
     max-width: 100% !important;
     padding-left: 1rem !important;
