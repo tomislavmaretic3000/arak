@@ -271,9 +271,11 @@ export function FormatEditor() {
   if (!editor) return null
 
   return (
-    <div key={activeFormatId ?? 'format'} className="content-enter" style={{ minHeight: '100vh', background: '#fff', padding: '96px 108px', boxSizing: 'border-box', maxWidth: '794px', margin: '0 auto' }}>
-      {/* ── Editor content ── */}
-      <EditorContent editor={editor} />
+    <div key={activeFormatId ?? 'format'} className="content-enter" style={{ minHeight: '100vh', background: '#fff' }}>
+      <div style={{ maxWidth: '65ch', margin: '0 auto', padding: '50px 2rem 45vh', fontSize: FONT_SIZE_MAP[fontSize] }}>
+        {/* ── Editor content ── */}
+        <EditorContent editor={editor} />
+      </div>
 
       {/* ── Bubble toolbar (appears on text selection) ── */}
       {bubblePos && (
