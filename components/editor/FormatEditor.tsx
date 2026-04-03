@@ -271,24 +271,9 @@ export function FormatEditor() {
   if (!editor) return null
 
   return (
-    <div key={activeFormatId ?? 'format'} className="format-page-bg content-enter">
-      {/* ── A4 paper ── */}
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '794px',
-          minHeight: '1123px',
-          margin: '0 auto',
-          background: '#fff',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10), 0 12px 40px rgba(0,0,0,0.08)',
-          borderRadius: '2px',
-          padding: '96px 108px',
-          boxSizing: 'border-box',
-        }}
-      >
-        {/* ── Editor content ── */}
-        <EditorContent editor={editor} />
-      </div>
+    <div key={activeFormatId ?? 'format'} className="content-enter" style={{ minHeight: '100vh', background: '#fff', padding: '96px 108px', boxSizing: 'border-box', maxWidth: '794px', margin: '0 auto' }}>
+      {/* ── Editor content ── */}
+      <EditorContent editor={editor} />
 
       {/* ── Bubble toolbar (appears on text selection) ── */}
       {bubblePos && (
