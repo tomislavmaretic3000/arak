@@ -62,14 +62,6 @@ body {
   padding: 0;
 }
 
-html {
-  height: 100%;
-}
-
-body {
-  min-height: 100%;
-}
-
 body {
   background: var(--bg);
   color: var(--fg);

@@ -6,15 +6,16 @@ import Lenis from 'lenis'
 export function LenisProvider() {
   useEffect(() => {
     const lenis = new Lenis()
+    let rafId: number
 
     function raf(time: number) {
       lenis.raf(time)
-      requestAnimationFrame(raf)
+      rafId = requestAnimationFrame(raf)
     }
 
-    const id = requestAnimationFrame(raf)
+    rafId = requestAnimationFrame(raf)
     return () => {
-      cancelAnimationFrame(id)
+      cancelAnimationFrame(rafId)
       lenis.destroy()
     }
   }, [])

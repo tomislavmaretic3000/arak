@@ -39,7 +39,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${notoSans.variable} ${notoSerif.variable} ${notoMono.variable} h-full`}
+      className={`${notoSans.variable} ${notoSerif.variable} ${notoMono.variable}`}
     >
       <head>
         {/* Anti-FOUC: apply saved theme before hydration */}
@@ -49,7 +49,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="h-full">
+      <body>
         <LenisProvider />
         <SessionProvider>{children}</SessionProvider>
         <AgentationProvider />
