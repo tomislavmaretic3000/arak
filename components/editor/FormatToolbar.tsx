@@ -5,7 +5,7 @@ import type { Editor } from '@tiptap/react'
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
 
-const S = { width: 18, height: 18, viewBox: '0 0 18 18', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+const S = { width: 21, height: 21, viewBox: '0 0 18 18', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
 
 function IconBold() {
   return <svg {...S}><path d="M5 9h5a2.5 2.5 0 0 0 0-5H5v5Zm0 0h5.5a2.5 2.5 0 0 1 0 5H5V9Z"/></svg>
@@ -43,8 +43,8 @@ function Btn({ icon, title, onClick, active }: { icon: React.ReactNode; title: s
       title={title}
       onMouseDown={(e) => { e.preventDefault(); onClick() }}
       style={{
-        width: 34,
-        height: 34,
+        width: 39,
+        height: 39,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -52,7 +52,7 @@ function Btn({ icon, title, onClick, active }: { icon: React.ReactNode; title: s
         border: 'none',
         borderRadius: 6,
         cursor: 'pointer',
-        color: active ? '#fff' : 'rgba(255,255,255,0.75)',
+        color: active ? '#fff' : 'rgba(255,255,255,0.45)',
         transition: 'background 100ms, color 100ms',
         padding: 0,
         flexShrink: 0,
@@ -88,8 +88,7 @@ export function FormatToolbar({ editor }: { editor: Editor }) {
           gap: 2,
           background: '#1a1a18',
           borderRadius: 10,
-          padding: '4px 6px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)',
+          padding: '5px 7px',
         }}
       >
         <Btn icon={<IconBold />} title="Bold" onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')} />

@@ -28,7 +28,7 @@ import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
 // ── Slash menu icons ──────────────────────────────────────────────────────────
 
-const S = { width: 18, height: 18, viewBox: '0 0 18 18', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+const S = { width: 21, height: 21, viewBox: '0 0 18 18', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
 
 function SlashIcon({ title }: { title: string }) {
   if (title === 'Table') return <svg {...S}><rect x="3" y="3" width="12" height="12" rx="1"/><line x1="3" y1="7" x2="15" y2="7"/><line x1="3" y1="11" x2="15" y2="11"/><line x1="9" y1="3" x2="9" y2="15"/></svg>
@@ -282,8 +282,7 @@ export function FormatEditor() {
             zIndex: 50,
             background: '#1a1a18',
             borderRadius: 10,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)',
-            padding: '4px 6px',
+            padding: '5px 7px',
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
@@ -296,8 +295,8 @@ export function FormatEditor() {
               title={item.title}
               onMouseDown={(e) => { e.preventDefault(); slashMenu.command(item) }}
               style={{
-                width: 34,
-                height: 34,
+                width: 39,
+                height: 39,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -305,7 +304,7 @@ export function FormatEditor() {
                 border: 'none',
                 borderRadius: 6,
                 cursor: 'pointer',
-                color: i === slashMenu.selectedIdx ? '#fff' : 'rgba(255,255,255,0.75)',
+                color: i === slashMenu.selectedIdx ? '#fff' : 'rgba(255,255,255,0.45)',
                 transition: 'background 100ms, color 100ms',
                 padding: 0,
                 flexShrink: 0,
