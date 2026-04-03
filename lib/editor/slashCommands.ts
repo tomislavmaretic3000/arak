@@ -76,4 +76,11 @@ export const SLASH_COMMANDS: SlashCommandItem[] = [
         .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
         .run(),
   },
+  {
+    title: 'Page break',
+    description: 'Start a new page',
+    label: '⏎',
+    command: ({ editor, range }) =>
+      editor.chain().focus().deleteRange(range).insertPageBreak().run(),
+  },
 ]

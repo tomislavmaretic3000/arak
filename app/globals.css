@@ -186,7 +186,7 @@ body {
 .format-page-bg {
   min-height: 100vh;
   background: #d6d3cc;
-  padding: 3rem 1.5rem 6rem;
+  padding: 48px 24px 96px;
 }
 
 [data-theme="dark"] .format-page-bg {
@@ -195,6 +195,51 @@ body {
 
 [data-theme="shade"] .format-page-bg {
   background: #c8c2b6;
+}
+
+/* ── A4 page card ── */
+.format-page-card {
+  width: 100%;
+  max-width: 794px;
+  min-height: 1123px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 96px 108px;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.06);
+}
+
+/* ── Page break node ── */
+.arak-page-break {
+  margin: 64px -108px;
+  height: 48px;
+  background: #d6d3cc;
+  border-top: 1px solid #c8c5be;
+  border-bottom: 1px solid #c8c5be;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+[data-theme="dark"] .arak-page-break {
+  background: #1e1e1c;
+  border-color: #2e2e2c;
+}
+
+[data-theme="shade"] .arak-page-break {
+  background: #c8c2b6;
+  border-color: #bab4a8;
+}
+
+/* ── Format toolbar animation ── */
+@keyframes formatToolbarIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.format-toolbar-enter {
+  animation: formatToolbarIn 160ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
 @media (max-width: 768px) {

@@ -10,6 +10,8 @@ import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { Typography } from '@tiptap/extension-typography'
+import { Underline } from '@tiptap/extension-underline'
+import { TextAlign } from '@tiptap/extension-text-align'
 import { Extension } from '@tiptap/core'
 import Suggestion, {
   type SuggestionProps,
@@ -19,6 +21,8 @@ import { useFormatStore } from '@/store/format'
 import { useEditorStore, FONT_SIZE_MAP } from '@/store/editor'
 import { useDocumentsStore } from '@/store/documents'
 import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommands'
+import { PageBreak } from '@/lib/editor/pageBreak'
+import { FormatToolbar } from './FormatToolbar'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -57,12 +61,9 @@ export function FormatEditor() {
   }, [])
 
   const [slashMenu, setSlashMenu] = useState<SlashMenuState | null>(null)
-  const [bubblePos, setBubblePos] = useState<{ x: number; y: number } | null>(null)
   const slashMenuRef = useRef<SlashMenuState | null>(null)
   slashMenuRef.current = slashMenu
 
-  // Handlers ref — allows the TipTap extension (created once) to call back into
-  // React state without stale closures.
   const handlersRef = useRef<SlashHandlers>({
     onStart: () => {},
     onUpdate: () => {},
@@ -70,40 +71,28 @@ export function FormatEditor() {
     onExit: () => {},
   })
 
-  // Wire up React state ↔ handlers ref
   useEffect(() => {
     handlersRef.current = {
       onStart: (props) => {
         const rect = props.clientRect?.()
         if (!rect) return
-        setSlashMenu({
-          items: props.items,
-          selectedIdx: 0,
-          command: props.command,
-          rect,
-        })
+        setSlashMenu({ items: props.items, selectedIdx: 0, command: props.command, rect })
       },
       onUpdate: (props) => {
         const rect = props.clientRect?.()
         setSlashMenu((prev) =>
-          prev && rect
-            ? { ...prev, items: props.items, command: props.command, rect, selectedIdx: 0 }
-            : null
+          prev && rect ? { ...prev, items: props.items, command: props.command, rect, selectedIdx: 0 } : null
         )
       },
       onKeyDown: ({ event }) => {
         const menu = slashMenuRef.current
         if (!menu || menu.items.length === 0) return false
         if (event.key === 'ArrowUp') {
-          setSlashMenu((m) =>
-            m ? { ...m, selectedIdx: (m.selectedIdx - 1 + m.items.length) % m.items.length } : null
-          )
+          setSlashMenu((m) => m ? { ...m, selectedIdx: (m.selectedIdx - 1 + m.items.length) % m.items.length } : null)
           return true
         }
         if (event.key === 'ArrowDown') {
-          setSlashMenu((m) =>
-            m ? { ...m, selectedIdx: (m.selectedIdx + 1) % m.items.length } : null
-          )
+          setSlashMenu((m) => m ? { ...m, selectedIdx: (m.selectedIdx + 1) % m.items.length } : null)
           return true
         }
         if (event.key === 'Enter') {
@@ -117,7 +106,6 @@ export function FormatEditor() {
     }
   })
 
-  // Build slash command extension (once — captures handlersRef via closure)
   const SlashCommandExtension = useMemo(
     () =>
       Extension.create({
@@ -132,8 +120,7 @@ export function FormatEditor() {
                 SLASH_COMMANDS.filter((c) =>
                   c.title.toLowerCase().startsWith(query.toLowerCase())
                 ).slice(0, 8),
-              command: ({ editor, range, props }) =>
-                props.command({ editor, range }),
+              command: ({ editor, range, props }) => props.command({ editor, range }),
               render: () => ({
                 onStart: (p) => handlersRef.current.onStart(p),
                 onUpdate: (p) => handlersRef.current.onUpdate(p),
@@ -149,13 +136,11 @@ export function FormatEditor() {
   )
 
   const fontFamily =
-    font === 'serif'
-      ? 'var(--font-noto-serif)'
-      : font === 'mono'
-      ? 'var(--font-noto-mono)'
-      : 'var(--font-noto-sans)'
+    font === 'serif' ? 'var(--font-noto-serif)'
+    : font === 'mono' ? 'var(--font-noto-mono)'
+    : 'var(--font-noto-sans)'
 
-  // ── TipTap editor ─────────────────────────────────────────────────────────
+  // ── TipTap editor ──────────────────────────────────────────────────────────
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ horizontalRule: { HTMLAttributes: { class: 'arak-hr' } } }),
@@ -166,6 +151,9 @@ export function FormatEditor() {
       TableHeader,
       Placeholder.configure({ placeholder: 'start writing…  type / for commands' }),
       Typography,
+      Underline,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      PageBreak,
       SlashCommandExtension,
     ],
     content: content ?? undefined,
@@ -217,24 +205,7 @@ export function FormatEditor() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handleSave, handleOpen])
 
-  // ── Selection → bubble toolbar position ──────────────────────────────────
-  useEffect(() => {
-    if (!editor) return
-    const update = () => {
-      const { from, to } = editor.state.selection
-      if (from === to) { setBubblePos(null); return }
-      // Position above the start of the selection
-      const start = editor.view.coordsAtPos(from)
-      const end = editor.view.coordsAtPos(to)
-      const midX = (start.left + end.left) / 2
-      setBubblePos({ x: midX, y: start.top })
-    }
-    editor.on('selectionUpdate', update)
-    editor.on('blur', () => setBubblePos(null))
-    return () => { editor.off('selectionUpdate', update) }
-  }, [editor])
-
-  // ── Sync font/size changes to editor ─────────────────────────────────────
+  // ── Sync font/size changes ────────────────────────────────────────────────
   useEffect(() => {
     if (!editor) return
     editor.view.dom.setAttribute(
@@ -258,76 +229,17 @@ export function FormatEditor() {
     return () => { if (idleTimer.current) clearTimeout(idleTimer.current) }
   }, [content, markSaved])
 
-  // ── Link helper ───────────────────────────────────────────────────────────
-  const setLink = useCallback(() => {
-    if (!editor) return
-    const prev = editor.getAttributes('link').href as string | undefined
-    const url = window.prompt('URL', prev ?? 'https://')
-    if (url === null) return
-    if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
-  }, [editor])
-
   if (!editor) return null
 
   return (
-    <div key={activeFormatId ?? 'format'} className="content-enter" style={{ minHeight: '100vh', background: '#fff' }}>
-      <div style={{ maxWidth: '65ch', margin: '0 auto', padding: '50px 2rem 45vh', fontSize: FONT_SIZE_MAP[fontSize] }}>
-        {/* ── Editor content ── */}
+    <div key={activeFormatId ?? 'format'} className="format-page-bg content-enter">
+      {/* ── A4 card ── */}
+      <div className="format-page-card">
         <EditorContent editor={editor} />
       </div>
 
-      {/* ── Bubble toolbar (appears on text selection) ── */}
-      {bubblePos && (
-        <div
-          style={{
-            position: 'fixed',
-            top: bubblePos.y - 44,
-            left: bubblePos.x,
-            transform: 'translateX(-50%)',
-            zIndex: 40,
-            display: 'flex',
-            gap: '1px',
-            background: '#fff',
-            border: '1px solid #d4d4ce',
-            borderRadius: '7px',
-            padding: '3px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-            fontFamily: 'var(--font-noto-sans)',
-            animation: 'fadeIn 150ms ease-in-out',
-          }}
-        >
-          {[
-            { label: 'B', title: 'Bold', action: () => editor.chain().focus().toggleBold().run(), active: editor.isActive('bold'), style: { fontWeight: 700 } as React.CSSProperties },
-            { label: 'I', title: 'Italic', action: () => editor.chain().focus().toggleItalic().run(), active: editor.isActive('italic'), style: { fontStyle: 'italic' } as React.CSSProperties },
-            { label: 'H1', title: 'Heading 1', action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), active: editor.isActive('heading', { level: 1 }), style: {} },
-            { label: 'H2', title: 'Heading 2', action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), active: editor.isActive('heading', { level: 2 }), style: {} },
-            { label: 'H3', title: 'Heading 3', action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(), active: editor.isActive('heading', { level: 3 }), style: {} },
-            { label: '❝', title: 'Quote', action: () => editor.chain().focus().toggleBlockquote().run(), active: editor.isActive('blockquote'), style: {} },
-            { label: 'Link', title: 'Link', action: setLink, active: editor.isActive('link'), style: {} },
-          ].map(({ label, title: t, action, active, style }) => (
-            <button
-              key={label}
-              title={t}
-              onMouseDown={(e) => { e.preventDefault(); action() }}
-              style={{
-                background: active ? '#f0f0ec' : 'transparent',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                padding: '4px 7px',
-                fontSize: '12px',
-                color: active ? '#1a1a18' : '#8a8a84',
-                fontFamily: 'var(--font-noto-sans)',
-                transition: 'background 120ms, color 120ms',
-                ...style,
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* ── Dark icon toolbar ── */}
+      <FormatToolbar editor={editor} />
 
       {/* ── Slash command menu ── */}
       {slashMenu && slashMenu.items.length > 0 && (
@@ -349,10 +261,7 @@ export function FormatEditor() {
           {slashMenu.items.map((item, i) => (
             <button
               key={item.title}
-              onMouseDown={(e) => {
-                e.preventDefault()
-                slashMenu.command(item)
-              }}
+              onMouseDown={(e) => { e.preventDefault(); slashMenu.command(item) }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -371,12 +280,8 @@ export function FormatEditor() {
                 {item.label}
               </span>
               <span>
-                <span style={{ fontSize: '13px', color: '#1a1a18', display: 'block' }}>
-                  {item.title}
-                </span>
-                <span style={{ fontSize: '11px', color: '#8a8a84', display: 'block', marginTop: '1px' }}>
-                  {item.description}
-                </span>
+                <span style={{ fontSize: '13px', color: '#1a1a18', display: 'block' }}>{item.title}</span>
+                <span style={{ fontSize: '11px', color: '#8a8a84', display: 'block', marginTop: '1px' }}>{item.description}</span>
               </span>
             </button>
           ))}
