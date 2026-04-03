@@ -13,11 +13,11 @@
   --item-active: rgba(0,0,0,0.09);
 
   /* Dark */
-  --bg-dark: #111110;
+  --bg-dark: #252523;
   --fg-dark: #e8e8e4;
   --muted-dark: #6a6a66;
-  --subtle-dark: #2e2e2c;
-  --sidebar-bg-dark: #1f1f1d;
+  --subtle-dark: #333331;
+  --sidebar-bg-dark: #111110;
 
   /* Shade */
   --bg-shade: #f1ede5;
