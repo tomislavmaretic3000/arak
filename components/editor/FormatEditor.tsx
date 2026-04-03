@@ -18,7 +18,7 @@ import Suggestion, {
   type SuggestionKeyDownProps,
 } from '@tiptap/suggestion'
 import { useFormatStore } from '@/store/format'
-import { useEditorStore, FONT_SIZE_MAP } from '@/store/editor'
+import { useEditorStore } from '@/store/editor'
 import { useDocumentsStore } from '@/store/documents'
 import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommands'
 import { PageBreak } from '@/lib/editor/pageBreak'
@@ -74,14 +74,13 @@ export function FormatEditor() {
   useEffect(() => {
     handlersRef.current = {
       onStart: (props) => {
-        const rect = props.clientRect?.()
-        if (!rect) return
+        const rect = props.clientRect?.() ?? props.editor.view.dom.getBoundingClientRect()
         setSlashMenu({ items: props.items, selectedIdx: 0, command: props.command, rect })
       },
       onUpdate: (props) => {
-        const rect = props.clientRect?.()
+        const rect = props.clientRect?.() ?? props.editor.view.dom.getBoundingClientRect()
         setSlashMenu((prev) =>
-          prev && rect ? { ...prev, items: props.items, command: props.command, rect, selectedIdx: 0 } : null
+          prev ? { ...prev, items: props.items, command: props.command, rect, selectedIdx: 0 } : null
         )
       },
       onKeyDown: ({ event }) => {
@@ -168,8 +167,8 @@ export function FormatEditor() {
       attributes: {
         style: [
           `font-family: ${fontFamily}`,
-          `font-size: ${FONT_SIZE_MAP[fontSize]}`,
-          'line-height: 1.65',
+          'font-size: 15px',
+          'line-height: 1.7',
           'letter-spacing: 0.01em',
           'outline: none',
           'color: #1a1a18',
@@ -212,8 +211,8 @@ export function FormatEditor() {
       'style',
       [
         `font-family: ${fontFamily}`,
-        `font-size: ${FONT_SIZE_MAP[fontSize]}`,
-        'line-height: 1.65',
+        'font-size: 15px',
+        'line-height: 1.7',
         'letter-spacing: 0.01em',
         'outline: none',
         'color: #1a1a18',
@@ -241,47 +240,49 @@ export function FormatEditor() {
       {/* ── Dark icon toolbar ── */}
       <FormatToolbar editor={editor} />
 
-      {/* ── Slash command menu ── */}
+      {/* ── Slash command menu — horizontal icon row ── */}
       {slashMenu && slashMenu.items.length > 0 && (
         <div
           style={{
             position: 'fixed',
-            top: slashMenu.rect.bottom + 6,
+            top: slashMenu.rect.bottom + 8,
             left: slashMenu.rect.left,
             zIndex: 50,
-            background: '#fff',
-            border: '1px solid #d4d4ce',
-            borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            padding: '4px',
-            minWidth: '220px',
+            background: '#1a1a18',
+            borderRadius: '10px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            padding: '5px 6px',
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '2px',
             fontFamily: 'var(--font-noto-sans)',
           }}
         >
           {slashMenu.items.map((item, i) => (
             <button
               key={item.title}
+              title={item.title}
               onMouseDown={(e) => { e.preventDefault(); slashMenu.command(item) }}
               style={{
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                gap: '12px',
-                width: '100%',
-                background: i === slashMenu.selectedIdx ? '#f0f0ec' : 'transparent',
+                justifyContent: 'center',
+                gap: '3px',
+                background: i === slashMenu.selectedIdx ? 'rgba(255,255,255,0.16)' : 'transparent',
                 border: 'none',
-                borderRadius: '6px',
+                borderRadius: '7px',
                 cursor: 'pointer',
-                padding: '7px 10px',
-                textAlign: 'left',
+                padding: '8px 10px',
                 transition: 'background 100ms',
+                minWidth: '44px',
               }}
             >
-              <span style={{ fontSize: '12px', fontWeight: 500, color: '#8a8a84', width: '24px', textAlign: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: '16px', color: '#fff', lineHeight: 1, fontWeight: 500 }}>
                 {item.label}
               </span>
-              <span>
-                <span style={{ fontSize: '13px', color: '#1a1a18', display: 'block' }}>{item.title}</span>
-                <span style={{ fontSize: '11px', color: '#8a8a84', display: 'block', marginTop: '1px' }}>{item.description}</span>
+              <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>
+                {item.title.split(' ')[0]}
               </span>
             </button>
           ))}

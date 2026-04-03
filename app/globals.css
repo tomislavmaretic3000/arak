@@ -182,55 +182,35 @@ body {
   z-index: 2;
 }
 
-/* ── Format page background ── */
+/* ── Format page background — same as write mode ── */
 .format-page-bg {
   min-height: 100vh;
-  background: #d6d3cc;
+  background: var(--bg);
   padding: 48px 24px 96px;
-}
-
-[data-theme="dark"] .format-page-bg {
-  background: #1e1e1c;
-}
-
-[data-theme="shade"] .format-page-bg {
-  background: #c8c2b6;
 }
 
 /* ── A4 page card ── */
 .format-page-card {
   width: 100%;
-  max-width: 794px;
+  max-width: 860px;
   min-height: 1123px;
   margin: 0 auto;
   background: #fff;
-  padding: 96px 108px;
+  padding: 80px 96px;
   box-sizing: border-box;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.06);
+  overflow: visible;
 }
 
 /* ── Page break node ── */
 .arak-page-break {
-  margin: 64px -108px;
-  height: 48px;
-  background: #d6d3cc;
-  border-top: 1px solid #c8c5be;
-  border-bottom: 1px solid #c8c5be;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin: 56px -96px;
+  height: 40px;
+  background: var(--subtle);
+  border-top: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  opacity: 0.4;
   pointer-events: none;
   user-select: none;
-}
-
-[data-theme="dark"] .arak-page-break {
-  background: #1e1e1c;
-  border-color: #2e2e2c;
-}
-
-[data-theme="shade"] .arak-page-break {
-  background: #c8c2b6;
-  border-color: #bab4a8;
 }
 
 /* ── Format toolbar animation ── */
