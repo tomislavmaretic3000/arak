@@ -44,7 +44,9 @@ export const SLASH_COMMANDS: SlashCommandItem[] = [
   },
   {
     title: 'List',
-    command: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).toggleBulletList().run(),
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run()
+      editor.chain().focus().toggleBulletList().run()
+    },
   },
 ]
