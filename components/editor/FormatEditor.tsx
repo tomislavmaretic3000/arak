@@ -35,6 +35,8 @@ function SlashIcon({ title }: { title: string }) {
   if (title === 'Image') return <svg {...S}><rect x="3" y="3" width="12" height="12" rx="1.5"/><circle cx="7" cy="7" r="1.2" fill="currentColor" stroke="none"/><path d="M3 12l3.5-3.5 2.5 2.5 2-2 3 3"/></svg>
   if (title === 'Link') return <svg {...S}><path d="M7.5 10.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M10.5 7.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/></svg>
   if (title === 'Divider') return <svg {...S}><line x1="3" y1="9" x2="15" y2="9"/><line x1="3" y1="6" x2="5" y2="6"/><line x1="3" y1="12" x2="5" y2="12"/><line x1="13" y1="6" x2="15" y2="6"/><line x1="13" y1="12" x2="15" y2="12"/></svg>
+  if (title === 'Quote') return <svg {...S}><path d="M6 10c0-1.7 1-3 3-4L7.5 4C5 5.5 3.5 7.5 3.5 10v4H8v-4H6Zm7 0c0-1.7 1-3 3-4L14.5 4C12 5.5 10.5 7.5 10.5 10v4H15v-4h-2Z"/></svg>
+  if (title === 'List') return <svg {...S}><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="14" r="1" fill="currentColor" stroke="none"/><line x1="7" y1="6" x2="15" y2="6"/><line x1="7" y1="10" x2="15" y2="10"/><line x1="7" y1="14" x2="15" y2="14"/></svg>
   return null
 }
 
@@ -87,21 +89,13 @@ export function FormatEditor() {
   useEffect(() => {
     handlersRef.current = {
       onStart: (props) => {
-        let rect = props.clientRect?.()
-        if (!rect) {
-          const pos = props.editor.state.selection.from
-          const coords = props.editor.view.coordsAtPos(pos)
-          rect = new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
-        }
+        const coords = props.editor.view.coordsAtPos(props.range.from)
+        const rect = new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
         setSlashMenu({ items: props.items, selectedIdx: 0, command: props.command, rect })
       },
       onUpdate: (props) => {
-        let rect = props.clientRect?.()
-        if (!rect) {
-          const pos = props.editor.state.selection.from
-          const coords = props.editor.view.coordsAtPos(pos)
-          rect = new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
-        }
+        const coords = props.editor.view.coordsAtPos(props.range.from)
+        const rect = new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
         setSlashMenu((prev) =>
           prev ? { ...prev, items: props.items, command: props.command, rect, selectedIdx: 0 } : null
         )
