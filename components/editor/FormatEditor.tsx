@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { StarterKit } from '@tiptap/starter-kit'
 import { Link } from '@tiptap/extension-link'
+import { Image } from '@tiptap/extension-image'
 import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
@@ -24,6 +25,18 @@ import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommand
 import { PageBreak } from '@/lib/editor/pageBreak'
 import { FormatToolbar } from './FormatToolbar'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
+
+// ── Slash menu icons ──────────────────────────────────────────────────────────
+
+const S = { width: 18, height: 18, viewBox: '0 0 18 18', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+
+function SlashIcon({ title }: { title: string }) {
+  if (title === 'Table') return <svg {...S}><rect x="3" y="3" width="12" height="12" rx="1"/><line x1="3" y1="7" x2="15" y2="7"/><line x1="3" y1="11" x2="15" y2="11"/><line x1="9" y1="3" x2="9" y2="15"/></svg>
+  if (title === 'Image') return <svg {...S}><rect x="3" y="3" width="12" height="12" rx="1.5"/><circle cx="7" cy="7" r="1.2" fill="currentColor" stroke="none"/><path d="M3 12l3.5-3.5 2.5 2.5 2-2 3 3"/></svg>
+  if (title === 'Link') return <svg {...S}><path d="M7.5 10.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M10.5 7.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/></svg>
+  if (title === 'Divider') return <svg {...S}><line x1="3" y1="9" x2="15" y2="9"/><line x1="3" y1="6" x2="5" y2="6"/><line x1="3" y1="12" x2="5" y2="12"/><line x1="13" y1="6" x2="15" y2="6"/><line x1="13" y1="12" x2="15" y2="12"/></svg>
+  return null
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -154,6 +167,7 @@ export function FormatEditor() {
     extensions: [
       StarterKit.configure({ horizontalRule: { HTMLAttributes: { class: 'arak-hr' } } }),
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'arak-link' } }),
+      Image,
       Table.configure({ resizable: false }),
       TableRow,
       TableCell,
@@ -250,22 +264,23 @@ export function FormatEditor() {
       {/* ── Dark icon toolbar ── */}
       <FormatToolbar editor={editor} />
 
-      {/* ── Slash command menu — horizontal icon row ── */}
+      {/* ── Slash command menu ── */}
       {slashMenu && slashMenu.items.length > 0 && (
         <div
+          className="format-toolbar-enter"
           style={{
             position: 'fixed',
             top: slashMenu.rect.bottom + 8,
             left: slashMenu.rect.left,
             zIndex: 50,
             background: '#1a1a18',
-            borderRadius: '10px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-            padding: '5px 6px',
+            borderRadius: 10,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)',
+            padding: '4px 6px',
             display: 'flex',
             flexDirection: 'row',
-            gap: '2px',
-            fontFamily: 'var(--font-noto-sans)',
+            alignItems: 'center',
+            gap: 2,
           }}
         >
           {slashMenu.items.map((item, i) => (
@@ -274,26 +289,28 @@ export function FormatEditor() {
               title={item.title}
               onMouseDown={(e) => { e.preventDefault(); slashMenu.command(item) }}
               style={{
+                width: 34,
+                height: 34,
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '3px',
                 background: i === slashMenu.selectedIdx ? 'rgba(255,255,255,0.16)' : 'transparent',
                 border: 'none',
-                borderRadius: '7px',
+                borderRadius: 6,
                 cursor: 'pointer',
-                padding: '8px 10px',
-                transition: 'background 100ms',
-                minWidth: '44px',
+                color: i === slashMenu.selectedIdx ? '#fff' : 'rgba(255,255,255,0.75)',
+                transition: 'background 100ms, color 100ms',
+                padding: 0,
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                if (i !== slashMenu.selectedIdx) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
+              }}
+              onMouseLeave={(e) => {
+                if (i !== slashMenu.selectedIdx) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
               }}
             >
-              <span style={{ fontSize: '16px', color: '#fff', lineHeight: 1, fontWeight: 500 }}>
-                {item.label}
-              </span>
-              <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>
-                {item.title.split(' ')[0]}
-              </span>
+              <SlashIcon title={item.title} />
             </button>
           ))}
         </div>
