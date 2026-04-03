@@ -12,7 +12,7 @@ export function EditorShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && menuOpen) closeMenu()
-      if (e.key === ' ' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); toggleMenu() }
+      if (e.key === ' ' && e.altKey) { e.preventDefault(); toggleMenu() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
