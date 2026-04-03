@@ -205,10 +205,7 @@ body {
 .arak-page-break {
   margin: 56px -96px;
   height: 40px;
-  background: var(--subtle);
-  border-top: 2px solid var(--muted);
-  border-bottom: 2px solid var(--muted);
-  opacity: 0.4;
+  background: transparent;
   pointer-events: none;
   user-select: none;
 }
