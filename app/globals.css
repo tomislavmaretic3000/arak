@@ -186,13 +186,13 @@ body {
 .format-page-bg {
   min-height: 100vh;
   background: var(--bg);
-  padding: 48px 24px 96px;
+  padding: 96px 24px 96px;
 }
 
 /* ── A4 page card ── */
 .format-page-card {
   width: 100%;
-  max-width: 860px;
+  max-width: 960px;
   min-height: 1123px;
   margin: 0 auto;
   background: #fff;

@@ -74,11 +74,21 @@ export function FormatEditor() {
   useEffect(() => {
     handlersRef.current = {
       onStart: (props) => {
-        const rect = props.clientRect?.() ?? props.editor.view.dom.getBoundingClientRect()
+        let rect = props.clientRect?.()
+        if (!rect) {
+          const pos = props.editor.state.selection.from
+          const coords = props.editor.view.coordsAtPos(pos)
+          rect = new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
+        }
         setSlashMenu({ items: props.items, selectedIdx: 0, command: props.command, rect })
       },
       onUpdate: (props) => {
-        const rect = props.clientRect?.() ?? props.editor.view.dom.getBoundingClientRect()
+        let rect = props.clientRect?.()
+        if (!rect) {
+          const pos = props.editor.state.selection.from
+          const coords = props.editor.view.coordsAtPos(pos)
+          rect = new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
+        }
         setSlashMenu((prev) =>
           prev ? { ...prev, items: props.items, command: props.command, rect, selectedIdx: 0 } : null
         )
@@ -167,7 +177,7 @@ export function FormatEditor() {
       attributes: {
         style: [
           `font-family: ${fontFamily}`,
-          'font-size: 15px',
+          'font-size: 16px',
           'line-height: 1.7',
           'letter-spacing: 0.01em',
           'outline: none',
@@ -211,7 +221,7 @@ export function FormatEditor() {
       'style',
       [
         `font-family: ${fontFamily}`,
-        'font-size: 15px',
+        'font-size: 16px',
         'line-height: 1.7',
         'letter-spacing: 0.01em',
         'outline: none',
