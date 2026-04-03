@@ -166,6 +166,19 @@ export function FormatEditor() {
       TableRow,
       TableCell,
       TableHeader,
+      Extension.create({
+        name: 'tableBackspaceDelete',
+        addKeyboardShortcuts() {
+          return {
+            Backspace: () => {
+              if (!this.editor.isActive('table')) return false
+              const { $from } = this.editor.state.selection
+              if ($from.parentOffset > 0) return false
+              return this.editor.chain().focus().deleteTable().run()
+            },
+          }
+        },
+      }),
       Placeholder.configure({ placeholder: 'start writing…  type / for commands' }),
       Typography,
       Underline,
