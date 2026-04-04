@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useEditorStore } from '@/store/editor'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useEditorStore((s) => s.theme)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     const html = document.documentElement
@@ -15,17 +16,48 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme])
 
+  useEffect(() => {
+    const el = videoRef.current
+    if (!el) return
+
+    el.playbackRate = 0.5
+    let rafId: number
+    let reversed = false
+
+    const stepBack = () => {
+      if (el.currentTime <= 0) {
+        reversed = false
+        el.playbackRate = 0.5
+        el.play()
+        return
+      }
+      el.currentTime = Math.max(0, el.currentTime - 0.04)
+      rafId = requestAnimationFrame(stepBack)
+    }
+
+    const onEnded = () => {
+      reversed = true
+      cancelAnimationFrame(rafId)
+      stepBack()
+    }
+
+    el.addEventListener('ended', onEnded)
+    return () => {
+      el.removeEventListener('ended', onEnded)
+      cancelAnimationFrame(rafId)
+    }
+  }, [theme])
+
   return (
     <>
       {children}
       {theme === 'shade' && (
         <video
+          ref={videoRef}
           src="/leafs.mp4"
           autoPlay
-          loop
           muted
           playsInline
-          ref={(el) => { if (el) el.playbackRate = 0.5 }}
           style={{
             position: 'fixed',
             inset: 0,
