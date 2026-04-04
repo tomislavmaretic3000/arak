@@ -28,15 +28,24 @@ import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
 // ── Slash menu icons ──────────────────────────────────────────────────────────
 
-const S = { width: 21, height: 21, viewBox: '0 0 18 18', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+import {
+  Table as TableIcon,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Minus,
+  Quote,
+  List as ListIcon,
+} from 'lucide-react'
+
+const SLASH_ICON = { size: 18, strokeWidth: 1.5 }
 
 function SlashIcon({ title }: { title: string }) {
-  if (title === 'Table') return <svg {...S}><rect x="3" y="3" width="12" height="12" rx="1"/><line x1="3" y1="7" x2="15" y2="7"/><line x1="3" y1="11" x2="15" y2="11"/><line x1="9" y1="3" x2="9" y2="15"/></svg>
-  if (title === 'Image') return <svg {...S}><rect x="3" y="3" width="12" height="12" rx="1.5"/><circle cx="7" cy="7" r="1.2" fill="currentColor" stroke="none"/><path d="M3 12l3.5-3.5 2.5 2.5 2-2 3 3"/></svg>
-  if (title === 'Link') return <svg {...S}><path d="M7.5 10.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M10.5 7.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/></svg>
-  if (title === 'Divider') return <svg {...S}><line x1="3" y1="9" x2="15" y2="9"/><line x1="3" y1="6" x2="5" y2="6"/><line x1="3" y1="12" x2="5" y2="12"/><line x1="13" y1="6" x2="15" y2="6"/><line x1="13" y1="12" x2="15" y2="12"/></svg>
-  if (title === 'Quote') return <svg {...S}><path d="M6 10c0-1.7 1-3 3-4L7.5 4C5 5.5 3.5 7.5 3.5 10v4H8v-4H6Zm7 0c0-1.7 1-3 3-4L14.5 4C12 5.5 10.5 7.5 10.5 10v4H15v-4h-2Z"/></svg>
-  if (title === 'List') return <svg {...S}><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="14" r="1" fill="currentColor" stroke="none"/><line x1="7" y1="6" x2="15" y2="6"/><line x1="7" y1="10" x2="15" y2="10"/><line x1="7" y1="14" x2="15" y2="14"/></svg>
+  if (title === 'Table')   return <TableIcon {...SLASH_ICON} />
+  if (title === 'Image')   return <ImageIcon {...SLASH_ICON} />
+  if (title === 'Link')    return <LinkIcon  {...SLASH_ICON} />
+  if (title === 'Divider') return <Minus     {...SLASH_ICON} />
+  if (title === 'Quote')   return <Quote     {...SLASH_ICON} />
+  if (title === 'List')    return <ListIcon  {...SLASH_ICON} />
   return null
 }
 
@@ -293,8 +302,8 @@ export function FormatEditor() {
             left: slashMenu.rect.left,
             zIndex: 50,
             background: '#1a1a18',
-            borderRadius: 10,
-            padding: '5px 7px',
+            borderRadius: 14,
+            padding: '4px 6px',
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
@@ -307,8 +316,8 @@ export function FormatEditor() {
               title={item.title}
               onMouseDown={(e) => { e.preventDefault(); slashMenu.command(item) }}
               style={{
-                width: 39,
-                height: 39,
+                width: 36,
+                height: 36,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -316,7 +325,7 @@ export function FormatEditor() {
                 border: 'none',
                 borderRadius: 6,
                 cursor: 'pointer',
-                color: i === slashMenu.selectedIdx ? '#fff' : 'rgba(255,255,255,0.45)',
+                color: i === slashMenu.selectedIdx ? '#fff' : 'rgba(255,255,255,0.6)',
                 transition: 'background 100ms, color 100ms',
                 padding: 0,
                 flexShrink: 0,
