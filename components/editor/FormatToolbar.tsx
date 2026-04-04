@@ -8,6 +8,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Heading, Heading1, Heading2, Heading3,
   List, ListOrdered,
+  Quote, Link,
 } from 'lucide-react'
 
 // ── Atoms ─────────────────────────────────────────────────────────────────────
@@ -101,6 +102,13 @@ export function FormatToolbar({ editor }: { editor: Editor }) {
       >
         <Btn icon={<Bold {...ICON}/>}   title="Bold"   onClick={() => editor.chain().focus().toggleBold().run()}   active={editor.isActive('bold')} />
         <Btn icon={<Italic {...ICON}/>} title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')} />
+        <Btn icon={<Quote {...ICON}/>}  title="Quote"  onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} />
+        <Btn icon={<Link {...ICON}/>}   title="Link"   onClick={() => {
+          const url = window.prompt('URL', editor.getAttributes('link').href ?? '')
+          if (url === null) return
+          if (url === '') { editor.chain().focus().unsetLink().run(); return }
+          editor.chain().focus().setLink({ href: url }).run()
+        }} active={editor.isActive('link')} />
 
         <Sep />
 
