@@ -196,14 +196,14 @@ body {
   min-height: 1123px;
   margin: 0 auto;
   background: #fff;
-  padding: 80px 96px;
+  padding: 96px;
   box-sizing: border-box;
   overflow: visible;
 }
 
 /* ── Page break node ── */
 .arak-page-break {
-  margin: 56px -96px;
+  margin: 56px -96px; /* matches card padding */
   height: 40px;
   background: transparent;
   pointer-events: none;
@@ -238,5 +238,14 @@ body {
     max-width: 100% !important;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
+  }
+  .format-page-bg {
+    padding: 32px 12px 64px !important;
+  }
+  .format-page-card {
+    padding: 40px 28px !important;
+  }
+  .arak-page-break {
+    margin: 32px -28px !important;
   }
 }
