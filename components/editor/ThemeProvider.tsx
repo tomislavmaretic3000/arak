@@ -25,6 +25,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           loop
           muted
           playsInline
+          ref={(el) => { if (el) el.playbackRate = 0.5 }}
           style={{
             position: 'fixed',
             inset: 0,
