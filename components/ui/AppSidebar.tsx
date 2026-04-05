@@ -270,44 +270,14 @@ export function AppSidebar() {
               <Hint>no files found</Hint>
             )}
             {!driveLoading && driveFiles.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '0.5rem' }}>
                 {driveFiles.map((f) => (
-                  <button
+                  <DriveItem
                     key={f.id}
+                    file={f}
+                    isActive={f.id === linkedDriveId}
                     onClick={() => handleOpenFile(f)}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      background: f.id === linkedDriveId ? 'var(--fg)' : 'none',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '10px 12px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{
-                      fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-                      fontSize: '15px',
-                      fontWeight: 400,
-                      color: f.id === linkedDriveId ? 'var(--bg)' : 'var(--fg)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {f.name.replace(/\.txt$/, '')}
-                    </div>
-                    <div style={{
-                      fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-                      fontSize: '11px',
-                      color: f.id === linkedDriveId ? 'var(--bg)' : 'var(--muted)',
-                      opacity: 0.6,
-                      marginTop: '2px',
-                    }}>
-                      {f.mimeType === 'application/vnd.google-apps.document' ? 'Google Doc · ' : ''}
-                      {new Date(f.modifiedTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
-                  </button>
+                  />
                 ))}
               </div>
             )}
@@ -483,6 +453,61 @@ function Hint({ children }: { children: React.ReactNode }) {
     }}>
       {children}
     </p>
+  )
+}
+
+function DriveItem({
+  file,
+  isActive,
+  onClick,
+}: {
+  file: { id: string; name: string; mimeType: string; modifiedTime: string }
+  isActive: boolean
+  onClick: () => void
+}) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'block',
+        width: '100%',
+        background: isActive ? 'var(--item-active)' : hovered ? 'var(--item-hover)' : 'none',
+        border: 'none',
+        borderRadius: '6px',
+        padding: '8px 10px',
+        textAlign: 'left',
+        cursor: 'pointer',
+        transition: 'background 120ms',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+        <span style={{
+          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+          fontSize: '16px',
+          lineHeight: 1.2,
+          fontWeight: 500,
+          color: 'var(--fg)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          {file.name.replace(/\.txt$/, '')}
+        </span>
+        <span style={{
+          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+          fontSize: '16px',
+          lineHeight: 1.2,
+          color: 'var(--muted)',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}>
+          {file.mimeType === 'application/vnd.google-apps.document' ? 'doc · ' : ''}{dateLabel(new Date(file.modifiedTime).getTime())}
+        </span>
+      </div>
+    </button>
   )
 }
 
