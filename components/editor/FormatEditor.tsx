@@ -84,6 +84,19 @@ export function FormatEditor() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Load active doc into editor when selection changes
+  useEffect(() => {
+    if (!activeFormatId) return
+    const doc = docs.find((d) => d.id === activeFormatId)
+    if (!doc) return
+    setContent(doc.content as Record<string, unknown>)
+    setTitle(doc.title)
+    editorRef.current?.commands.setContent(doc.content as Record<string, unknown> ?? '')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFormatId])
+
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null)
+
   const [slashMenu, setSlashMenu] = useState<SlashMenuState | null>(null)
   const slashMenuRef = useRef<SlashMenuState | null>(null)
   slashMenuRef.current = slashMenu
@@ -281,6 +294,7 @@ export function FormatEditor() {
   }, [content, markSaved])
 
   if (!editor) return null
+  editorRef.current = editor
 
   return (
     <div key={activeFormatId ?? 'format'} className="format-page-bg content-enter">

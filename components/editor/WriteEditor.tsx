@@ -72,8 +72,7 @@ export function WriteEditor() {
     if (!activeWriteId) return
     const doc = docs.find((d) => d.id === activeWriteId)
     if (!doc) return
-    const editorContent = useEditorStore.getState().content
-    if (typeof doc.content === 'string' && doc.content !== editorContent) {
+    if (typeof doc.content === 'string') {
       setContent(doc.content)
       setTitle(doc.title)
     }
