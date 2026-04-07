@@ -8,11 +8,11 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          // drive.file: access only to files created/opened by this app
           scope: [
             'openid',
             'email',
             'profile',
+            'https://www.googleapis.com/auth/drive.readonly',
             'https://www.googleapis.com/auth/drive.file',
           ].join(' '),
           access_type: 'offline',
