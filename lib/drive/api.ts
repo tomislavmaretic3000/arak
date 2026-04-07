@@ -6,16 +6,32 @@ export interface DriveFile {
   name: string
   mimeType: string
   modifiedTime: string
+  size?: string  // bytes, absent for Google Docs
 }
 
-/** List recent plain-text and Google Docs files. */
+const FIELDS = encodeURIComponent('files(id,name,mimeType,modifiedTime,size)')
+
+/** List contents of a folder (root if folderId omitted). Returns folders first, then files. */
+export async function listDriveFolder(token: string, folderId = 'root'): Promise<DriveFile[]> {
+  const q = encodeURIComponent(
+    `'${folderId}' in parents and trashed=false and (mimeType='application/vnd.google-apps.folder' or mimeType='text/plain' or mimeType='application/vnd.google-apps.document')`
+  )
+  const res = await fetch(
+    `${DRIVE}/files?q=${q}&fields=${FIELDS}&orderBy=folder,name&pageSize=200`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  if (!res.ok) throw new Error(`Drive list error: ${res.status}`)
+  const data = await res.json()
+  return (data.files ?? []) as DriveFile[]
+}
+
+/** Legacy: list recent files (used by save/link flow). */
 export async function listDriveFiles(token: string, query = ''): Promise<DriveFile[]> {
   const base = "(mimeType='text/plain' or mimeType='application/vnd.google-apps.document') and trashed=false"
   const filter = query ? ` and name contains '${query.replace(/'/g, "\\'")}'` : ''
   const q = encodeURIComponent(base + filter)
-  const fields = encodeURIComponent('files(id,name,mimeType,modifiedTime)')
   const res = await fetch(
-    `${DRIVE}/files?q=${q}&fields=${fields}&orderBy=modifiedTime+desc&pageSize=100`,
+    `${DRIVE}/files?q=${q}&fields=${FIELDS}&orderBy=modifiedTime+desc&pageSize=100`,
     { headers: { Authorization: `Bearer ${token}` } }
   )
   if (!res.ok) throw new Error(`Drive list error: ${res.status}`)
