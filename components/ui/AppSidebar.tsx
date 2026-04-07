@@ -120,9 +120,24 @@ export function AppSidebar() {
   }, [isWrite, createDoc, setActiveWrite, setActiveFormat, closeMenu])
 
   const handleFormat = useCallback(() => {
+    if (isWrite) {
+      // Convert plain text to TipTap JSON paragraphs for format mode
+      const paragraphs = (writeContent || '').split('\n').map((line) => ({
+        type: 'paragraph',
+        content: line ? [{ type: 'text', text: line }] : [],
+      }))
+      const json = { type: 'doc', content: paragraphs }
+      useFormatStore.getState().setContent(json)
+      useFormatStore.getState().setTitle(writeTitle || 'untitled')
+    } else {
+      // Extract plain text from TipTap JSON for write mode
+      const text = getPreview(formatContent)
+      useEditorStore.getState().setContent(text)
+      useFilesStore.getState().setTitle(formatTitle || 'untitled')
+    }
     router.push(isWrite ? '/format' : '/write')
     closeMenu()
-  }, [isWrite, router, closeMenu])
+  }, [isWrite, writeContent, writeTitle, formatContent, formatTitle, router, closeMenu])
 
   const handleSaveDevice = useCallback(async () => {
     const title = isWrite ? writeTitle : formatTitle
@@ -314,6 +329,7 @@ export function AppSidebar() {
                     onClick={() => {
                       if (doc.mode === 'write') { setActiveWrite(doc.id); router.push('/write') }
                       else { setActiveFormat(doc.id); router.push('/format') }
+                      window.scrollTo({ top: 0, behavior: 'instant' })
                       if (window.innerWidth <= 768) closeMenu()
                     }}
                   />
