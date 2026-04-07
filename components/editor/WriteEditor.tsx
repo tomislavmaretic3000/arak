@@ -301,7 +301,7 @@ export function WriteEditor() {
             resize: 'none',
             overflow: 'hidden',
             color: showMirror ? 'transparent' : 'var(--fg)',
-            caretColor: 'var(--fg)',
+            caretColor: isEmpty ? 'transparent' : 'var(--fg)',
           }}
         />
       </div>
