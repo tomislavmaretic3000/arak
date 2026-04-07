@@ -54,7 +54,7 @@ function posHighlightContent(text: string): React.ReactNode {
 }
 
 export function WriteEditor() {
-  const { content, focusMode: focusModeStore, posHighlight, font, fontSize, lineHeight, setContent } =
+  const { content, focusMode: focusModeStore, posHighlight, typewriterMode, font, fontSize, lineHeight, setContent } =
     useEditorStore()
   const menuOpen = useUIStore((s) => s.menuOpen)
   const focusMode = focusModeStore && !menuOpen
@@ -89,9 +89,9 @@ export function WriteEditor() {
     fontSize: fontSizePx,
     lineHeight: lineHeightV,
     letterSpacing: '0.01em',
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-    overflowWrap: 'break-word',
+    whiteSpace: typewriterMode ? 'pre' : 'pre-wrap',
+    wordBreak: typewriterMode ? 'normal' : 'break-word',
+    overflowWrap: typewriterMode ? 'normal' : 'break-word',
     padding: 0,
     margin: 0,
   }
@@ -213,6 +213,33 @@ export function WriteEditor() {
     setCursorPos(textareaRef.current?.selectionStart ?? 0)
   }, [])
 
+  // ── Typewriter scroll ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!typewriterMode) return
+    const ta = textareaRef.current
+    if (!ta) return
+
+    // Vertical: keep cursor line at 40% from top
+    const linesBefore = content.slice(0, cursorPos).split('\n').length - 1
+    const lineHeightPx = parseFloat(fontSizePx) * parseFloat(lineHeightV)
+    const cursorY = ta.offsetTop + linesBefore * lineHeightPx
+    const targetY = cursorY - window.innerHeight * 0.4
+    window.scrollTo({ top: targetY, behavior: 'smooth' })
+
+    // Horizontal: keep cursor char visible within textarea
+    // Use a temporary span to measure the x offset of the current line up to cursor
+    const lineStart = content.lastIndexOf('\n', cursorPos - 1) + 1
+    const charsOnLine = cursorPos - lineStart
+    // Each char is roughly fontSizePx * 0.6 wide — good enough for nowrap scroll
+    const approxX = charsOnLine * parseFloat(fontSizePx) * 0.55
+    const containerWidth = ta.offsetWidth
+    if (approxX > containerWidth * 0.7) {
+      ta.scrollLeft = approxX - containerWidth * 0.5
+    } else {
+      ta.scrollLeft = 0
+    }
+  }, [cursorPos, typewriterMode, content, fontSizePx, lineHeightV])
+
   // ── Mirror content ────────────────────────────────────────────────────────
   const paragraphs = useMemo(() => parseParagraphs(content), [content])
   const currentParaIdx = useMemo(
@@ -290,10 +317,11 @@ export function WriteEditor() {
       key={activeWriteId ?? 'write'}
       className="content-enter write-editor-container"
       style={{
-        maxWidth: '65ch',
+        maxWidth: typewriterMode ? 'none' : '65ch',
         fontSize: fontSizePx,
-        margin: '0 auto',
-        padding: '18vh 2rem 45vh',
+        margin: typewriterMode ? '0' : '0 auto',
+        padding: typewriterMode ? '40vh 2rem 60vh' : '18vh 2rem 45vh',
+        overflow: typewriterMode ? 'hidden' : undefined,
       }}
     >
       {/* ── Editor area ── */}
@@ -347,7 +375,9 @@ export function WriteEditor() {
             border: 'none',
             outline: 'none',
             resize: 'none',
-            overflow: 'hidden',
+            overflow: typewriterMode ? 'auto' : 'hidden',
+            overflowX: typewriterMode ? 'scroll' : 'hidden',
+            overflowY: 'hidden',
             color: showMirror ? 'transparent' : 'var(--fg)',
             caretColor: isEmpty ? 'transparent' : 'var(--fg)',
           }}
