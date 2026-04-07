@@ -9,7 +9,6 @@ interface EditorStore {
   content: string
   focusMode: boolean
   posHighlight: boolean
-  typewriterMode: boolean
   theme: Theme
   font: Font
   fontSize: SizeOption
@@ -18,7 +17,6 @@ interface EditorStore {
   toggleFocusMode: () => void
   setFocusMode: (v: boolean) => void
   setPosHighlight: (v: boolean) => void
-  setTypewriterMode: (v: boolean) => void
   setTheme: (theme: Theme) => void
   setFont: (font: Font) => void
   setFontSize: (v: SizeOption) => void
@@ -31,7 +29,6 @@ export const useEditorStore = create<EditorStore>()(
       content: '',
       focusMode: true,
       posHighlight: false,
-      typewriterMode: false,
       theme: 'light',
       font: 'serif',
       fontSize: 'medium',
@@ -40,7 +37,6 @@ export const useEditorStore = create<EditorStore>()(
       toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
       setFocusMode: (focusMode) => set({ focusMode }),
       setPosHighlight: (posHighlight) => set({ posHighlight }),
-      setTypewriterMode: (typewriterMode) => set({ typewriterMode }),
       setTheme: (theme) => set({ theme }),
       setFont: (font) => set({ font }),
       setFontSize: (fontSize) => set({ fontSize }),
