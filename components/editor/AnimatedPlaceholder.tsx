@@ -12,11 +12,11 @@ const PHRASES = [
   'a Promise', 'a Confession', 'a Conversation',
 ]
 
-const PREFIX = 'Would you like to write '
-const TYPE_SPEED   = 55   // ms per character typed
-const DELETE_SPEED = 35   // ms per character deleted
-const HOLD         = 3000 // ms to hold before deleting
-const FADE_IN      = 600  // ms for initial fade-in
+const PREFIX      = 'Would you like to write '
+const TYPE_SPEED  = 55   // ms per character typed initially
+const OVER_SPEED  = 60   // ms per character during overwrite
+const HOLD        = 3000 // ms to hold before overwriting
+const FADE_IN     = 600  // ms for initial fade-in
 
 function pickNext(exclude: string): string {
   const pool = PHRASES.filter((p) => p !== exclude)
@@ -30,11 +30,10 @@ interface Props {
 }
 
 export function AnimatedPlaceholder({ fontFamily, fontSize, lineHeight }: Props) {
-  const [visible, setVisible] = useState(false)       // controls fade-in
-  const [displayed, setDisplayed] = useState('')      // currently shown suffix
-  const phraseRef = useRef(PHRASES[Math.floor(Math.random() * PHRASES.length)])
-  const rafRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const phase     = useRef<'typing' | 'holding' | 'deleting'>('typing')
+  const [visible, setVisible] = useState(false)
+  const [displayed, setDisplayed] = useState('')
+  const currentRef = useRef(PHRASES[Math.floor(Math.random() * PHRASES.length)])
+  const timerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Fade in on mount
   useEffect(() => {
@@ -42,44 +41,47 @@ export function AnimatedPlaceholder({ fontFamily, fontSize, lineHeight }: Props)
     return () => clearTimeout(t)
   }, [])
 
-  // Start typewriter after fade-in completes
   useEffect(() => {
     if (!visible) return
 
-    function type() {
-      const target = phraseRef.current
-      setDisplayed((prev) => {
-        const next = target.slice(0, prev.length + 1)
-        if (next === target) {
-          phase.current = 'holding'
-          rafRef.current = setTimeout(hold, HOLD)
-          return next
-        }
-        rafRef.current = setTimeout(type, TYPE_SPEED)
-        return next
-      })
+    // ── Initial type-in ────────────────────────────────────────────────────
+    function typeIn(i: number) {
+      const target = currentRef.current
+      const next = target.slice(0, i + 1)
+      setDisplayed(next)
+      if (next.length < target.length) {
+        timerRef.current = setTimeout(() => typeIn(i + 1), TYPE_SPEED)
+      } else {
+        timerRef.current = setTimeout(startOverwrite, HOLD)
+      }
     }
 
-    function hold() {
-      phase.current = 'deleting'
-      erase()
+    // ── Overwrite current phrase with next, char by char ──────────────────
+    function startOverwrite() {
+      const oldPhrase = currentRef.current
+      const newPhrase = pickNext(oldPhrase)
+      currentRef.current = newPhrase
+      const steps = Math.max(oldPhrase.length, newPhrase.length)
+      overwriteStep(0, steps, oldPhrase, newPhrase)
     }
 
-    function erase() {
-      setDisplayed((prev) => {
-        if (prev.length === 0) {
-          phraseRef.current = pickNext(phraseRef.current)
-          phase.current = 'typing'
-          rafRef.current = setTimeout(type, TYPE_SPEED)
-          return ''
-        }
-        rafRef.current = setTimeout(erase, DELETE_SPEED)
-        return prev.slice(0, -1)
-      })
+    function overwriteStep(i: number, steps: number, old: string, next: string) {
+      // Build displayed: typed part of next + remaining tail of old
+      const left  = next.slice(0, i + 1)
+      const right = old.slice(i + 1)
+      setDisplayed(left + right)
+
+      if (i + 1 < steps) {
+        timerRef.current = setTimeout(() => overwriteStep(i + 1, steps, old, next), OVER_SPEED)
+      } else {
+        // Ensure displayed is exactly the new phrase (trim any leftover tail)
+        setDisplayed(next)
+        timerRef.current = setTimeout(startOverwrite, HOLD)
+      }
     }
 
-    rafRef.current = setTimeout(type, TYPE_SPEED)
-    return () => { if (rafRef.current) clearTimeout(rafRef.current) }
+    timerRef.current = setTimeout(() => typeIn(0), TYPE_SPEED)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [visible])
 
   return (
