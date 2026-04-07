@@ -9,9 +9,52 @@ import { useUIStore } from '@/store/ui'
 import { parseParagraphs, getCurrentSegmentIndex } from '@/lib/editor/sentences'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 import { AnimatedPlaceholder } from './AnimatedPlaceholder'
+import nlp from 'compromise'
+
+// POS color map — subtle, readable on all themes
+const POS_COLORS: Record<string, string> = {
+  Noun:      'var(--pos-noun)',
+  Verb:      'var(--pos-verb)',
+  Adjective: 'var(--pos-adj)',
+  Adverb:    'var(--pos-adv)',
+}
+
+function posHighlightContent(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = []
+  const lines = text.split('\n')
+  lines.forEach((line, li) => {
+    if (line.trim() === '') {
+      parts.push('\n')
+      return
+    }
+    const doc = nlp(line)
+    const terms = doc.json({ offset: true }) as Array<{ terms: Array<{ text: string; offset: { start: number; length: number }; tags: string[] }> }>
+    const tokens: Array<{ text: string; color?: string }> = []
+    let cursor = 0
+    terms.forEach((phrase) =>
+      phrase.terms.forEach((term) => {
+        const start = term.offset.start
+        if (start > cursor) tokens.push({ text: line.slice(cursor, start) })
+        const tag = (['Noun','Verb','Adjective','Adverb'] as const).find((t) => term.tags.includes(t))
+        tokens.push({ text: term.text, color: tag ? POS_COLORS[tag] : undefined })
+        cursor = start + term.offset.length
+      })
+    )
+    if (cursor < line.length) tokens.push({ text: line.slice(cursor) })
+    tokens.forEach((tok, ti) =>
+      parts.push(
+        tok.color
+          ? <span key={`${li}-${ti}`} style={{ color: tok.color }}>{tok.text}</span>
+          : <span key={`${li}-${ti}`}>{tok.text}</span>
+      )
+    )
+    if (li < lines.length - 1) parts.push('\n')
+  })
+  return <>{parts}</>
+}
 
 export function WriteEditor() {
-  const { content, focusMode: focusModeStore, font, fontSize, lineHeight, setContent } =
+  const { content, focusMode: focusModeStore, posHighlight, font, fontSize, lineHeight, setContent } =
     useEditorStore()
   const menuOpen = useUIStore((s) => s.menuOpen)
   const focusMode = focusModeStore && !menuOpen
@@ -208,6 +251,11 @@ export function WriteEditor() {
       return <>{parts}</>
     }
 
+    // POS highlight mode
+    if (posHighlight && content) {
+      return posHighlightContent(content)
+    }
+
     // Focus mode: paragraph dimming
     if (focusMode) {
       if (!content) return null
@@ -232,10 +280,10 @@ export function WriteEditor() {
     return null
   }, [
     searchOpen, matches, currentMatchIndex,
-    focusMode, content, paragraphs, currentParaIdx,
+    posHighlight, focusMode, content, paragraphs, currentParaIdx,
   ])
 
-  const showMirror = searchOpen || focusMode
+  const showMirror = searchOpen || focusMode || posHighlight
 
   return (
     <div

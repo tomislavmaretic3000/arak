@@ -83,7 +83,7 @@ export function AppSidebar() {
   const pathname = usePathname()
   const isWrite = pathname === '/write'
 
-  const { theme, font, fontSize, lineHeight, setTheme, setFont, setFontSize, setLineHeight } = useEditorStore()
+  const { theme, font, fontSize, lineHeight, focusMode: focusModeStore, posHighlight, setTheme, setFont, setFontSize, setLineHeight, setFocusMode, setPosHighlight } = useEditorStore()
   const writeContent = useEditorStore((s) => s.content)
   const setWriteContent = useEditorStore((s) => s.setContent)
   const writeTitle = useFilesStore((s) => s.title)
@@ -384,6 +384,26 @@ export function AppSidebar() {
                 ]}
                 value={lineHeight}
                 onChange={(v) => setLineHeight(v as SizeOption)}
+              />
+            </SettingRow>
+            <SettingRow label="Focus mode">
+              <Chips
+                options={[
+                  { value: 'on', label: 'On' },
+                  { value: 'off', label: 'Off' },
+                ]}
+                value={focusModeStore ? 'on' : 'off'}
+                onChange={(v) => setFocusMode(v === 'on')}
+              />
+            </SettingRow>
+            <SettingRow label="Syntax">
+              <Chips
+                options={[
+                  { value: 'on', label: 'On' },
+                  { value: 'off', label: 'Off' },
+                ]}
+                value={posHighlight ? 'on' : 'off'}
+                onChange={(v) => setPosHighlight(v === 'on')}
               />
             </SettingRow>
           </SubLevel>

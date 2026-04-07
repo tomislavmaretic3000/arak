@@ -12,6 +12,12 @@
   --item-hover: rgba(0,0,0,0.05);
   --item-active: rgba(0,0,0,0.09);
 
+  /* POS highlight colors */
+  --pos-noun: #5b8dd9;
+  --pos-verb: #c47b3e;
+  --pos-adj:  #7aaa6b;
+  --pos-adv:  #a47fd4;
+
   /* Dark */
   --bg-dark: #1c1c1a;
   --fg-dark: #e8e8e4;
