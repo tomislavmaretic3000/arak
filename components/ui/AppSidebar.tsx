@@ -302,7 +302,6 @@ export function AppSidebar() {
           <SubLevel
             title={folderStack[folderStack.length - 1].name}
             onBack={folderStack.length > 1 ? handleFolderBack : () => setLevel('open')}
-            chevronTitle
           >
             {driveLoading && <Hint>loading…</Hint>}
             {driveError && <Hint>{driveError}</Hint>}
@@ -464,65 +463,36 @@ function SubLevel({
   title,
   onBack,
   children,
-  chevronTitle = false,
 }: {
   title: string
   onBack: () => void
   children: React.ReactNode
-  chevronTitle?: boolean
 }) {
-  const titleStyle: React.CSSProperties = {
-    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-    fontSize: '28px',
-    fontWeight: 400,
-    letterSpacing: '-0.04em',
-    lineHeight: 1.25,
-    color: 'var(--fg)',
-    marginBottom: '1.25rem',
-  }
-
   return (
     <div>
-      {chevronTitle ? (
-        <button
-          onClick={onBack}
-          style={{
-            ...titleStyle,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            opacity: 0.75,
-          }}
-        >
-          <ChevronLeft size={22} strokeWidth={1.5} style={{ flexShrink: 0, marginLeft: '-4px' }} />
-          {title}
-        </button>
-      ) : (
-        <>
-          <button
-            onClick={onBack}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-              fontSize: '13px',
-              color: 'var(--muted)',
-              letterSpacing: '0.02em',
-              padding: '0 0 1.5rem',
-              display: 'block',
-              opacity: 0.6,
-            }}
-          >
-            ← back
-          </button>
-          <div style={titleStyle}>{title}</div>
-        </>
-      )}
+      <button
+        onClick={onBack}
+        style={{
+          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+          fontSize: '28px',
+          fontWeight: 400,
+          letterSpacing: '-0.04em',
+          lineHeight: 1.25,
+          color: 'var(--fg)',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          marginBottom: '1.25rem',
+          opacity: 0.75,
+        }}
+      >
+        <ChevronLeft size={22} strokeWidth={1.5} style={{ flexShrink: 0, marginLeft: '-4px' }} />
+        {title}
+      </button>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
         {children}
       </div>
