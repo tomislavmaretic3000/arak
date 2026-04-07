@@ -10,12 +10,13 @@ import { useFormatStore } from '@/store/format'
 import { useDocumentsStore } from '@/store/documents'
 import { useDriveStore } from '@/store/drive'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
-import { listDriveFiles, readDriveFile, saveToDrive, type DriveFile } from '@/lib/drive/api'
+import { listDriveFiles, listDriveFolder, readDriveFile, saveToDrive, type DriveFile } from '@/lib/drive/api'
 import {
   buildHtmlDocument, writeModeToHtml, formatModeToHtml,
   downloadHtml, downloadTxt,
 } from '@/lib/export/html'
 import { printAsPdf } from '@/lib/export/pdf'
+import { Folder, FileText } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ export function AppSidebar() {
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([])
   const [driveLoading, setDriveLoading] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
+  const [folderStack, setFolderStack] = useState<{ id: string; name: string }[]>([{ id: 'root', name: 'Google Drive' }])
   const [status, setStatus] = useState<string | null>(null)
 
   const router = useRouter()
@@ -180,17 +182,36 @@ export function AppSidebar() {
     closeMenu()
   }, [setWriteContent, setWriteTitle, router, closeMenu])
 
-  const handleOpenDrive = useCallback(async () => {
-    if (!token) { signIn('google'); return }
-    setLevel('open-drive')
+  const loadFolder = useCallback(async (folderId: string) => {
+    if (!token) return
     setDriveLoading(true)
     setDriveError(null)
     try {
-      const files = await listDriveFiles(token)
+      const files = await listDriveFolder(token, folderId)
       setDriveFiles(files)
     } catch (e) { setDriveError((e as Error).message) }
     finally { setDriveLoading(false) }
   }, [token])
+
+  const handleOpenDrive = useCallback(async () => {
+    if (!token) { signIn('google'); return }
+    setFolderStack([{ id: 'root', name: 'Google Drive' }])
+    setLevel('open-drive')
+    loadFolder('root')
+  }, [token, loadFolder])
+
+  const handleOpenFolder = useCallback((folder: DriveFile) => {
+    setFolderStack((prev) => [...prev, { id: folder.id, name: folder.name }])
+    loadFolder(folder.id)
+  }, [loadFolder])
+
+  const handleFolderBack = useCallback(() => {
+    setFolderStack((prev) => {
+      const next = prev.slice(0, -1)
+      loadFolder(next[next.length - 1].id)
+      return next
+    })
+  }, [loadFolder])
 
   const handleOpenFile = useCallback(async (file: DriveFile) => {
     if (!token) return
@@ -278,20 +299,28 @@ export function AppSidebar() {
 
         {/* ── Open Drive file list ── */}
         {level === 'open-drive' && (
-          <SubLevel title="Google Drive" onBack={() => setLevel('open')}>
+          <SubLevel
+            title={folderStack[folderStack.length - 1].name}
+            onBack={folderStack.length > 1 ? handleFolderBack : () => setLevel('open')}
+          >
             {driveLoading && <Hint>loading…</Hint>}
             {driveError && <Hint>{driveError}</Hint>}
             {!driveLoading && driveFiles.length === 0 && !driveError && (
-              <Hint>no files found</Hint>
+              <Hint>empty</Hint>
             )}
             {!driveLoading && driveFiles.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '0.5rem' }}>
-                {driveFiles.map((f) => (
-                  <DriveItem
+              <div style={{ marginTop: '0.5rem' }}>
+                {driveFiles.map((f, i) => (
+                  <DriveRow
                     key={f.id}
                     file={f}
                     isActive={f.id === linkedDriveId}
-                    onClick={() => handleOpenFile(f)}
+                    isLast={i === driveFiles.length - 1}
+                    onClick={() =>
+                      f.mimeType === 'application/vnd.google-apps.folder'
+                        ? handleOpenFolder(f)
+                        : handleOpenFile(f)
+                    }
                   />
                 ))}
               </div>
@@ -492,58 +521,90 @@ function Hint({ children }: { children: React.ReactNode }) {
   )
 }
 
-function DriveItem({
+function DriveRow({
   file,
   isActive,
+  isLast,
   onClick,
 }: {
-  file: { id: string; name: string; mimeType: string; modifiedTime: string }
+  file: DriveFile
   isActive: boolean
+  isLast: boolean
   onClick: () => void
 }) {
   const [hovered, setHovered] = useState(false)
+  const isFolder = file.mimeType === 'application/vnd.google-apps.folder'
+  const sizeKb = file.size ? `${Math.round(parseInt(file.size) / 1024) || 1} kb` : null
+  const time = dateLabel(new Date(file.modifiedTime).getTime())
+
+  const labelStyle: React.CSSProperties = {
+    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    fontSize: '14px',
+    lineHeight: 1.3,
+    color: 'var(--muted)',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  }
+
   return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'block',
-        width: '100%',
-        background: isActive ? 'var(--item-active)' : hovered ? 'var(--item-hover)' : 'none',
-        border: 'none',
-        borderRadius: '6px',
-        padding: '8px 10px',
-        textAlign: 'left',
-        cursor: 'pointer',
-        transition: 'background 120ms',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+    <div>
+      <button
+        onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          width: '100%',
+          background: isActive ? 'var(--item-active)' : hovered ? 'var(--item-hover)' : 'none',
+          border: 'none',
+          borderRadius: '6px',
+          padding: '7px 10px',
+          textAlign: 'left',
+          cursor: 'pointer',
+          transition: 'background 120ms',
+        }}
+      >
+        {/* Icon */}
+        <span style={{ color: 'var(--muted)', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+          {isFolder
+            ? <Folder size={15} strokeWidth={1.5} />
+            : <FileText size={15} strokeWidth={1.5} />
+          }
+        </span>
+
+        {/* Filename */}
         <span style={{
           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '16px',
-          lineHeight: 1.2,
+          fontSize: '14px',
+          lineHeight: 1.3,
           fontWeight: 500,
           color: 'var(--fg)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
+          flex: 1,
+          minWidth: 0,
         }}>
-          {file.name.replace(/\.txt$/, '')}
+          {file.name}
         </span>
-        <span style={{
-          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '16px',
-          lineHeight: 1.2,
-          color: 'var(--muted)',
-          whiteSpace: 'nowrap',
-          flexShrink: 0,
-        }}>
-          {file.mimeType === 'application/vnd.google-apps.document' ? 'doc · ' : ''}{dateLabel(new Date(file.modifiedTime).getTime())}
-        </span>
-      </div>
-    </button>
+
+        {/* Size + time */}
+        {!isFolder && (
+          <span style={{ ...labelStyle, display: 'flex', gap: '8px' }}>
+            {sizeKb && <span>{sizeKb}</span>}
+            <span>{time}</span>
+          </span>
+        )}
+        {isFolder && (
+          <span style={labelStyle}>{time}</span>
+        )}
+      </button>
+      {!isLast && (
+        <div style={{ height: '1px', background: 'var(--subtle)', margin: '0 10px' }} />
+      )}
+    </div>
   )
 }
 
