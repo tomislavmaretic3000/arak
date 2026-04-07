@@ -16,7 +16,7 @@ import {
   downloadHtml, downloadTxt,
 } from '@/lib/export/html'
 import { printAsPdf } from '@/lib/export/pdf'
-import { Folder, FileText } from 'lucide-react'
+import { Folder, FileText, ChevronLeft } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -300,9 +300,22 @@ export function AppSidebar() {
         {/* ── Open Drive file list ── */}
         {level === 'open-drive' && (
           <SubLevel
-            title={folderStack[folderStack.length - 1].name}
+            title={folderStack.length > 1 ? folderStack[folderStack.length - 2].name : 'Open'}
             onBack={folderStack.length > 1 ? handleFolderBack : () => setLevel('open')}
+            chevronTitle
           >
+            {folderStack.length > 1 && (
+              <div style={{
+                fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+                fontSize: '13px',
+                color: 'var(--muted)',
+                opacity: 0.55,
+                marginBottom: '1rem',
+                letterSpacing: '0.02em',
+              }}>
+                {folderStack[folderStack.length - 1].name}
+              </div>
+            )}
             {driveLoading && <Hint>loading…</Hint>}
             {driveError && <Hint>{driveError}</Hint>}
             {!driveLoading && driveFiles.length === 0 && !driveError && (
@@ -463,43 +476,65 @@ function SubLevel({
   title,
   onBack,
   children,
+  chevronTitle = false,
 }: {
   title: string
   onBack: () => void
   children: React.ReactNode
+  chevronTitle?: boolean
 }) {
+  const titleStyle: React.CSSProperties = {
+    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    fontSize: '28px',
+    fontWeight: 400,
+    letterSpacing: '-0.04em',
+    lineHeight: 1.25,
+    color: 'var(--fg)',
+    marginBottom: '1.25rem',
+  }
+
   return (
     <div>
-      <button
-        onClick={onBack}
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '13px',
-          color: 'var(--muted)',
-          letterSpacing: '0.02em',
-          padding: '0 0 1.5rem',
-          display: 'block',
-          opacity: 0.6,
-        }}
-      >
-        ← back
-      </button>
-      <div
-        style={{
-          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '28px',
-          fontWeight: 400,
-          letterSpacing: '-0.04em',
-          lineHeight: 1.25,
-          color: 'var(--fg)',
-          marginBottom: '1.25rem',
-        }}
-      >
-        {title}
-      </div>
+      {chevronTitle ? (
+        <button
+          onClick={onBack}
+          style={{
+            ...titleStyle,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            opacity: 0.75,
+          }}
+        >
+          <ChevronLeft size={22} strokeWidth={1.5} style={{ flexShrink: 0, marginLeft: '-4px' }} />
+          {title}
+        </button>
+      ) : (
+        <>
+          <button
+            onClick={onBack}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+              fontSize: '13px',
+              color: 'var(--muted)',
+              letterSpacing: '0.02em',
+              padding: '0 0 1.5rem',
+              display: 'block',
+              opacity: 0.6,
+            }}
+          >
+            ← back
+          </button>
+          <div style={titleStyle}>{title}</div>
+        </>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
         {children}
       </div>
@@ -560,7 +595,7 @@ function DriveRow({
           background: isActive ? 'var(--item-active)' : hovered ? 'var(--item-hover)' : 'none',
           border: 'none',
           borderRadius: '6px',
-          padding: '7px 10px',
+          padding: '11px 10px',
           textAlign: 'left',
           cursor: 'pointer',
           transition: 'background 120ms',
