@@ -104,7 +104,15 @@ export function AnimatedPlaceholder({ fontFamily, fontSize, lineHeight }: Props)
         whiteSpace: 'nowrap',
       }}
     >
-      {PREFIX}{displayed}
+      {PREFIX}{displayed}<span style={{
+        display: 'inline-block',
+        width: '1px',
+        height: '0.85em',
+        background: 'var(--muted)',
+        marginLeft: '2px',
+        verticalAlign: 'text-bottom',
+        animation: 'blink 1s step-end infinite',
+      }} />
     </div>
   )
 }
