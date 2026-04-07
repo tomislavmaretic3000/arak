@@ -300,22 +300,10 @@ export function AppSidebar() {
         {/* ── Open Drive file list ── */}
         {level === 'open-drive' && (
           <SubLevel
-            title={folderStack.length > 1 ? folderStack[folderStack.length - 2].name : 'Open'}
+            title={folderStack[folderStack.length - 1].name}
             onBack={folderStack.length > 1 ? handleFolderBack : () => setLevel('open')}
             chevronTitle
           >
-            {folderStack.length > 1 && (
-              <div style={{
-                fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-                fontSize: '13px',
-                color: 'var(--muted)',
-                opacity: 0.55,
-                marginBottom: '1rem',
-                letterSpacing: '0.02em',
-              }}>
-                {folderStack[folderStack.length - 1].name}
-              </div>
-            )}
             {driveLoading && <Hint>loading…</Hint>}
             {driveError && <Hint>{driveError}</Hint>}
             {!driveLoading && driveFiles.length === 0 && !driveError && (
