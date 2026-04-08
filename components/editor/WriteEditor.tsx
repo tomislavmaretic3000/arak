@@ -261,17 +261,22 @@ export function WriteEditor() {
       if (paragraphs.length === 0) return posHighlightContent(content)
       return (
         <>
-          {paragraphs.map((seg, i) => (
-            <span
-              key={seg.start}
-              style={{
-                opacity: i === currentParaIdx ? 1 : 0.3,
-                transition: 'opacity 180ms ease-in-out',
-              }}
-            >
-              {posHighlightContent(seg.text)}
-            </span>
-          ))}
+          {paragraphs.map((seg, i) => {
+            const trailingNL = seg.text.endsWith('\n')
+            const lineText = trailingNL ? seg.text.slice(0, -1) : seg.text
+            return (
+              <span
+                key={seg.start}
+                style={{
+                  opacity: i === currentParaIdx ? 1 : 0.3,
+                  transition: 'opacity 180ms ease-in-out',
+                }}
+              >
+                {lineText ? posHighlightContent(lineText) : null}
+                {trailingNL ? '\n' : null}
+              </span>
+            )
+          })}
         </>
       )
     }
