@@ -225,6 +225,10 @@ export function WriteEditor() {
     return content.trim().split(/\s+/).filter(Boolean).length
   }, [content])
 
+  const charCount = content.length
+
+  const minRead = Math.max(1, Math.round(wordCount / 238))
+
   const mirrorContent = useMemo(() => {
     // Search mode: render with match highlights
     if (searchOpen && matches.length > 0) {
@@ -323,26 +327,12 @@ export function WriteEditor() {
         maxWidth: '65ch',
         fontSize: fontSizePx,
         margin: '0 auto',
-        padding: '18vh 2rem 45vh',
+        padding: '18vh 2rem 12rem',
       }}
     >
       {/* ── Word count ── */}
       {showWordCount && !isEmpty && (
-        <div style={{
-          position: 'fixed',
-          bottom: '2rem',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '12px',
-          color: 'var(--muted)',
-          opacity: 0.5,
-          pointerEvents: 'none',
-          userSelect: 'none',
-          letterSpacing: '0.03em',
-        }}>
-          {wordCount} {wordCount === 1 ? 'word' : 'words'}
-        </div>
+        <WordCount words={wordCount} chars={charCount} minRead={minRead} />
       )}
 
       {/* ── Editor area ── */}
@@ -402,6 +392,35 @@ export function WriteEditor() {
           }}
         />
       </div>
+    </div>
+  )
+}
+
+function WordCount({ words, chars, minRead }: { words: number; chars: number; minRead: number }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: 'fixed',
+        bottom: '2rem',
+        right: '2rem',
+        textAlign: 'right',
+        fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+        fontSize: '12px',
+        lineHeight: 1.7,
+        letterSpacing: '0.02em',
+        color: hovered ? 'var(--fg)' : 'var(--muted)',
+        opacity: hovered ? 0.7 : 0.35,
+        transition: 'color 150ms, opacity 150ms',
+        pointerEvents: 'auto',
+        userSelect: 'none',
+      }}
+    >
+      <div>{words} {words === 1 ? 'word' : 'words'}</div>
+      <div>{chars} {chars === 1 ? 'character' : 'characters'}</div>
+      <div>{minRead} min read</div>
     </div>
   )
 }
