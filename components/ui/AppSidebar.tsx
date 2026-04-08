@@ -85,7 +85,7 @@ export function AppSidebar() {
   const pathname = usePathname()
   const isWrite = pathname === '/write'
 
-  const { theme, font, fontSize, lineHeight, focusMode: focusModeStore, posHighlight, setTheme, setFont, setFontSize, setLineHeight, setFocusMode, setPosHighlight } = useEditorStore()
+  const { theme, font, fontSize, lineHeight, focusMode: focusModeStore, posHighlight, showWordCount, setTheme, setFont, setFontSize, setLineHeight, setFocusMode, setPosHighlight, setShowWordCount } = useEditorStore()
   const writeContent = useEditorStore((s) => s.content)
   const setWriteContent = useEditorStore((s) => s.setContent)
   const writeTitle = useFilesStore((s) => s.title)
@@ -371,69 +371,32 @@ export function AppSidebar() {
         {/* ── Settings ── */}
         {level === 'settings' && (
           <SubLevel title="Settings" onBack={() => setLevel('main')}>
-            <SettingRow label="Theme">
-              <Chips
-                options={[
-                  { value: 'light', label: 'Light' },
-                  { value: 'shade', label: 'Shade' },
-                  { value: 'dark', label: 'Dark' },
-                ]}
-                value={theme}
-                onChange={(v) => setTheme(v as Theme)}
-              />
+            <SettingRow label="Text size">
+              <Chip label="Small" selected={fontSize === 'small'} onClick={() => setFontSize('small')} />
+              <Chip label="Medium" selected={fontSize === 'medium'} onClick={() => setFontSize('medium')} />
+              <Chip label="Big" selected={fontSize === 'large'} onClick={() => setFontSize('large')} />
             </SettingRow>
-            <SettingRow label="Font">
-              <Chips
-                options={[
-                  { value: 'serif', label: 'Serif' },
-                  { value: 'sans', label: 'Sans' },
-                  { value: 'mono', label: 'Mono' },
-                ]}
-                value={font}
-                onChange={(v) => setFont(v as Font)}
-              />
+            <SettingRow label="Type style">
+              <Chip label="Sans" selected={font === 'sans'} onClick={() => setFont('sans')} />
+              <Chip label="Serif" selected={font === 'serif'} onClick={() => setFont('serif')} />
+              <Chip label="Mono" selected={font === 'mono'} onClick={() => setFont('mono')} />
             </SettingRow>
-            <SettingRow label="Size">
-              <Chips
-                options={[
-                  { value: 'small', label: 'Small' },
-                  { value: 'medium', label: 'Medium' },
-                  { value: 'large', label: 'Big' },
-                ]}
-                value={fontSize}
-                onChange={(v) => setFontSize(v as SizeOption)}
-              />
+            <SettingRow label="Appearance">
+              <Chip label="Light" selected={theme === 'light'} onClick={() => setTheme('light')} />
+              <Chip label="Shade" selected={theme === 'shade'} onClick={() => setTheme('shade')} />
+              <Chip label="Dark" selected={theme === 'dark'} onClick={() => setTheme('dark')} />
             </SettingRow>
-            <SettingRow label="Spacing">
-              <Chips
-                options={[
-                  { value: 'small', label: 'Tight' },
-                  { value: 'medium', label: 'Normal' },
-                  { value: 'large', label: 'Loose' },
-                ]}
-                value={lineHeight}
-                onChange={(v) => setLineHeight(v as SizeOption)}
-              />
+            <SettingRow label="Highlight paragraph">
+              <Chip label="On" selected={focusModeStore} onClick={() => setFocusMode(true)} />
+              <Chip label="Off" selected={!focusModeStore} onClick={() => setFocusMode(false)} />
             </SettingRow>
-            <SettingRow label="Focus mode">
-              <Chips
-                options={[
-                  { value: 'on', label: 'On' },
-                  { value: 'off', label: 'Off' },
-                ]}
-                value={focusModeStore ? 'on' : 'off'}
-                onChange={(v) => setFocusMode(v === 'on')}
-              />
+            <SettingRow label="Mark word classes">
+              <Chip label="On" selected={posHighlight} onClick={() => setPosHighlight(true)} />
+              <Chip label="Off" selected={!posHighlight} onClick={() => setPosHighlight(false)} />
             </SettingRow>
-            <SettingRow label="Syntax">
-              <Chips
-                options={[
-                  { value: 'on', label: 'On' },
-                  { value: 'off', label: 'Off' },
-                ]}
-                value={posHighlight ? 'on' : 'off'}
-                onChange={(v) => setPosHighlight(v === 'on')}
-              />
+            <SettingRow label="Word count">
+              <Chip label="On" selected={showWordCount} onClick={() => setShowWordCount(true)} />
+              <Chip label="Off" selected={!showWordCount} onClick={() => setShowWordCount(false)} />
             </SettingRow>
           </SubLevel>
         )}
@@ -672,53 +635,52 @@ function RecentItem({
 
 function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: '1.5rem' }}>
-      <div style={{
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '8px 10px',
+      borderRadius: '6px',
+      gap: '12px',
+    }}>
+      <span style={{
         fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-        fontSize: '11px',
-        letterSpacing: '0.07em',
-        textTransform: 'uppercase',
-        color: 'var(--muted)',
-        opacity: 0.55,
-        marginBottom: '0.5rem',
+        fontSize: '16px',
+        fontWeight: 500,
+        lineHeight: 1.2,
+        color: 'var(--fg)',
+        whiteSpace: 'nowrap',
       }}>
         {label}
+      </span>
+      <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+        {children}
       </div>
-      {children}
     </div>
   )
 }
 
-function Chips({
-  options,
-  value,
-  onChange,
-}: {
-  options: { value: string; label: string }[]
-  value: string
-  onChange: (v: string) => void
-}) {
+function Chip({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+  const [hovered, setHovered] = useState(false)
   return (
-    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          style={{
-            background: value === opt.value ? 'var(--fg)' : 'var(--surface)',
-            color: value === opt.value ? 'var(--bg)' : 'var(--muted)',
-            border: 'none',
-            borderRadius: '6px',
-            padding: '5px 12px',
-            fontSize: '12px',
-            fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-            cursor: 'pointer',
-            transition: 'background 120ms, color 120ms',
-          }}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: selected ? 'var(--fg)' : hovered ? 'var(--item-hover)' : 'transparent',
+        color: selected ? 'var(--bg)' : 'var(--fg)',
+        border: 'none',
+        borderRadius: '100px',
+        padding: '4px 11px',
+        fontSize: '13px',
+        fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+        cursor: 'pointer',
+        transition: 'background 120ms, color 120ms',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </button>
   )
 }

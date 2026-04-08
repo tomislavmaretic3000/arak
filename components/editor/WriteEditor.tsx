@@ -54,7 +54,7 @@ function posHighlightContent(text: string): React.ReactNode {
 }
 
 export function WriteEditor() {
-  const { content, focusMode: focusModeStore, posHighlight, font, fontSize, lineHeight, setContent } =
+  const { content, focusMode: focusModeStore, posHighlight, showWordCount, font, fontSize, lineHeight, setContent } =
     useEditorStore()
   const menuOpen = useUIStore((s) => s.menuOpen)
   const focusMode = focusModeStore && !menuOpen
@@ -220,6 +220,11 @@ export function WriteEditor() {
     [paragraphs, cursorPos]
   )
 
+  const wordCount = useMemo(() => {
+    if (!content.trim()) return 0
+    return content.trim().split(/\s+/).filter(Boolean).length
+  }, [content])
+
   const mirrorContent = useMemo(() => {
     // Search mode: render with match highlights
     if (searchOpen && matches.length > 0) {
@@ -296,6 +301,25 @@ export function WriteEditor() {
         padding: '18vh 2rem 45vh',
       }}
     >
+      {/* ── Word count ── */}
+      {showWordCount && !isEmpty && (
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+          fontSize: '12px',
+          color: 'var(--muted)',
+          opacity: 0.5,
+          pointerEvents: 'none',
+          userSelect: 'none',
+          letterSpacing: '0.03em',
+        }}>
+          {wordCount} {wordCount === 1 ? 'word' : 'words'}
+        </div>
+      )}
+
       {/* ── Editor area ── */}
       <div style={{ position: 'relative' }}>
         {/* Animated placeholder */}
