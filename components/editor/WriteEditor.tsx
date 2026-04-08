@@ -331,7 +331,7 @@ export function WriteEditor() {
       }}
     >
       {/* ── Word count ── */}
-      {showWordCount && !isEmpty && (
+      {showWordCount && (
         <WordCount words={wordCount} chars={charCount} minRead={minRead} />
       )}
 
@@ -404,9 +404,9 @@ function WordCount({ words, chars, minRead }: { words: number; chars: number; mi
       onMouseLeave={() => setHovered(false)}
       style={{
         position: 'fixed',
-        bottom: '2rem',
-        right: '2rem',
-        textAlign: 'right',
+        bottom: '24px',
+        left: '24px',
+        textAlign: 'left',
         fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
         fontSize: '12px',
         lineHeight: 1.7,
@@ -416,6 +416,7 @@ function WordCount({ words, chars, minRead }: { words: number; chars: number; mi
         transition: 'color 150ms, opacity 150ms',
         pointerEvents: 'auto',
         userSelect: 'none',
+        zIndex: 50,
       }}
     >
       <div>{words} {words === 1 ? 'word' : 'words'}</div>
