@@ -256,12 +256,32 @@ export function WriteEditor() {
       return <>{parts}</>
     }
 
-    // POS highlight mode
+    // Combined: focus dimming + POS coloring
+    if (focusMode && posHighlight && content) {
+      if (paragraphs.length === 0) return posHighlightContent(content)
+      return (
+        <>
+          {paragraphs.map((seg, i) => (
+            <span
+              key={seg.start}
+              style={{
+                opacity: i === currentParaIdx ? 1 : 0.3,
+                transition: 'opacity 180ms ease-in-out',
+              }}
+            >
+              {posHighlightContent(seg.text)}
+            </span>
+          ))}
+        </>
+      )
+    }
+
+    // POS highlight only
     if (posHighlight && content) {
       return posHighlightContent(content)
     }
 
-    // Focus mode: paragraph dimming
+    // Focus mode only: paragraph dimming
     if (focusMode) {
       if (!content) return null
       if (paragraphs.length === 0) return <span>{content}</span>
@@ -271,7 +291,7 @@ export function WriteEditor() {
             <span
               key={seg.start}
               style={{
-                opacity: i === currentParaIdx ? 1 : 0.5,
+                opacity: i === currentParaIdx ? 1 : 0.3,
                 transition: 'opacity 180ms ease-in-out',
               }}
             >
