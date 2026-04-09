@@ -2,11 +2,17 @@
 
 import { useEditorStore, FONT_SIZE_MAP, LINE_HEIGHT_MAP } from '@/store/editor'
 
-const ABOUT_TEXT = `Arak is a minimal writing environment.
+const ABOUT_TEXT = `Arak is a minimal writing environment designed to get out of your way and let you focus on the words.
 
-Built for focused writing without distractions.
+It offers two modes — a plain writing surface for drafting, and a format view for structuring your text with headings, lists, and rich layout.
 
-More to come.`
+You can open and save documents from your device or directly from Google Drive, with recent files always a click away.
+
+The appearance is fully adjustable: choose your typeface, text size, and theme — including a Shade mode with a subtle ambient overlay for evening writing sessions.
+
+Focus mode dims everything outside the current paragraph, and word class highlighting colours nouns, verbs, adjectives, and adverbs to help you see the rhythm and balance of your writing.
+
+A live word count tracks your progress quietly in the corner, out of the way until you need it.`
 
 export function AboutView() {
   const { font, fontSize, lineHeight } = useEditorStore()
