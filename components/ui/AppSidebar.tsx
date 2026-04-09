@@ -553,7 +553,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
         width: '44px',
         height: '24px',
         borderRadius: '100px',
-        background: value ? 'var(--fg)' : 'var(--item-hover)',
+        background: value ? 'var(--muted)' : 'var(--subtle)',
         position: 'relative',
         cursor: 'pointer',
         transition: 'background 150ms',
@@ -586,7 +586,7 @@ function PillGroup({
   return (
     <div style={{
       display: 'flex',
-      background: 'var(--item-hover)',
+      background: 'var(--subtle)',
       borderRadius: '100px',
       padding: '3px',
       gap: '2px',
@@ -598,8 +598,8 @@ function PillGroup({
           onClick={() => onChange(opt.value)}
           style={{
             flex: 1,
-            background: value === opt.value ? 'var(--subtle)' : 'transparent',
-            color: 'var(--fg)',
+            background: value === opt.value ? 'var(--muted)' : 'transparent',
+            color: value === opt.value ? 'var(--bg)' : 'var(--fg)',
             border: 'none',
             borderRadius: '100px',
             padding: '7px 0',
