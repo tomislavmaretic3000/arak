@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
@@ -10,17 +10,12 @@ import { useFormatStore } from '@/store/format'
 import { useDocumentsStore } from '@/store/documents'
 import { useDriveStore } from '@/store/drive'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
-import { listDriveFiles, listDriveFolder, readDriveFile, saveToDrive, type DriveFile } from '@/lib/drive/api'
-import {
-  buildHtmlDocument, writeModeToHtml, formatModeToHtml,
-  downloadHtml, downloadTxt,
-} from '@/lib/export/html'
-import { printAsPdf } from '@/lib/export/pdf'
+import { listDriveFolder, readDriveFile, saveToDrive, type DriveFile } from '@/lib/drive/api'
 import { Folder, FileText, ChevronLeft } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Level = 'main' | 'save' | 'export' | 'open' | 'open-drive' | 'recent' | 'settings'
+type Level = 'main' | 'save' | 'open' | 'open-drive' | 'settings' | 'about'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -85,7 +80,7 @@ export function AppSidebar() {
   const pathname = usePathname()
   const isWrite = pathname === '/write'
 
-  const { theme, font, fontSize, lineHeight, focusMode: focusModeStore, posHighlight, showWordCount, setTheme, setFont, setFontSize, setLineHeight, setFocusMode, setPosHighlight, setShowWordCount } = useEditorStore()
+  const { theme, font, fontSize, focusMode: focusModeStore, posHighlight, showWordCount, setTheme, setFont, setFontSize, setFocusMode, setPosHighlight, setShowWordCount } = useEditorStore()
   const writeContent = useEditorStore((s) => s.content)
   const setWriteContent = useEditorStore((s) => s.setContent)
   const writeTitle = useFilesStore((s) => s.title)
@@ -95,7 +90,7 @@ export function AppSidebar() {
 
   const { docs, activeWriteId, activeFormatId, createDoc, setActiveWrite, setActiveFormat } = useDocumentsStore()
   const activeDocId = isWrite ? activeWriteId : activeFormatId
-  const { linkFile, getDriveId, getDriveName } = useDriveStore()
+  const { linkFile, getDriveId } = useDriveStore()
   const linkedDriveId = activeDocId ? getDriveId(activeDocId) : null
 
   const { data: session } = useSession()
@@ -160,18 +155,6 @@ export function AppSidebar() {
       setTimeout(() => { setStatus(null); closeMenu() }, 1000)
     } catch { setStatus('error'); setTimeout(() => setStatus(null), 2000) }
   }, [token, isWrite, writeTitle, formatTitle, writeContent, formatContent, linkedDriveId, activeDocId, linkFile, closeMenu])
-
-  const handleExport = useCallback((format: 'pdf' | 'txt' | 'html') => {
-    const title = isWrite ? writeTitle : formatTitle
-    const font_ = useEditorStore.getState().font
-    const fontStack = font_ === 'serif' ? "'Noto Serif', serif" : font_ === 'mono' ? "'Noto Sans Mono', monospace" : "'Noto Sans', sans-serif"
-    const bodyHtml = isWrite ? writeModeToHtml(writeContent) : formatModeToHtml((formatContent ?? {}) as Record<string, unknown>)
-    const html = buildHtmlDocument(title || 'untitled', bodyHtml, fontStack)
-    if (format === 'pdf') printAsPdf(html)
-    else if (format === 'html') downloadHtml(html, (title || 'untitled') + '.html')
-    else downloadTxt(isWrite ? writeContent : getPreview(formatContent), (title || 'untitled') + '.txt')
-    closeMenu()
-  }, [isWrite, writeTitle, formatTitle, writeContent, formatContent, closeMenu])
 
   const handleOpenDevice = useCallback(async () => {
     const result = await loadFromFile()
@@ -253,46 +236,78 @@ export function AppSidebar() {
         {level === 'main' && (
           <nav style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em', paddingBottom: '2em' }}>
-              <MenuItem onClick={handleFormat}>{isWrite ? 'Format' : 'Write'}</MenuItem>
-              <MenuItem onClick={() => setLevel('save')}>Save</MenuItem>
-              <MenuItem onClick={() => setLevel('export')}>Export</MenuItem>
-            </div>
-            <div style={{ borderTop: '1px solid var(--subtle)', paddingTop: '2em', paddingBottom: '2em', display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
-              <MenuItem onClick={() => setLevel('open')}>Open</MenuItem>
               <MenuItem onClick={handleNew}>New</MenuItem>
-              <MenuItem onClick={() => setLevel('recent')}>Recent</MenuItem>
+              <MenuItem onClick={() => setLevel('open')}>Open</MenuItem>
+              <MenuItem onClick={() => setLevel('save')}>Save</MenuItem>
+              <MenuItem onClick={handleFormat}>{isWrite ? 'Format' : 'Write'}</MenuItem>
             </div>
             <div style={{ borderTop: '1px solid var(--subtle)', paddingTop: '2em', display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
               <MenuItem onClick={() => setLevel('settings')}>Settings</MenuItem>
+              <MenuItem onClick={() => setLevel('about')}>About</MenuItem>
             </div>
           </nav>
-        )}
-
-        {/* ── Save level ── */}
-        {level === 'save' && (
-          <SubLevel title="Save" onBack={() => setLevel('main')}>
-            <MenuItem onClick={handleSaveDevice}>Device</MenuItem>
-            <MenuItem onClick={handleSaveCloud}>
-              {status ? status : 'Cloud'}
-            </MenuItem>
-          </SubLevel>
-        )}
-
-        {/* ── Export level ── */}
-        {level === 'export' && (
-          <SubLevel title="Export" onBack={() => setLevel('main')}>
-            <MenuItem onClick={() => handleExport('pdf')}>PDF</MenuItem>
-            <MenuItem onClick={() => handleExport('txt')}>TXT</MenuItem>
-            <MenuItem onClick={() => handleExport('html')}>HTML</MenuItem>
-          </SubLevel>
         )}
 
         {/* ── Open level ── */}
         {level === 'open' && (
           <SubLevel title="Open" onBack={() => setLevel('main')}>
-            <MenuItem onClick={handleOpenDevice}>Device</MenuItem>
-            <MenuItem onClick={handleOpenDrive}>
-              {session ? 'Google Drive' : 'Google Drive ↗'}
+            <MenuItem onClick={handleOpenDevice}>From Device</MenuItem>
+            <MenuItem onClick={handleOpenDrive}>From Cloud</MenuItem>
+            {docs.length > 0 && (
+              <>
+                <div style={{ borderTop: '1px solid var(--subtle)', margin: '1.25em 0 0.75em' }} />
+                {[...docs]
+                  .sort((a, b) => b.updatedAt - a.updatedAt)
+                  .slice(0, 5)
+                  .map((doc) => {
+                    const isActive = isWrite
+                      ? (doc.mode === 'write' && doc.id === activeWriteId)
+                      : (doc.mode === 'format' && doc.id === activeFormatId)
+                    return (
+                      <button
+                        key={doc.id}
+                        onClick={() => {
+                          if (doc.mode === 'write') { setActiveWrite(doc.id); router.push('/write') }
+                          else { setActiveFormat(doc.id); router.push('/format') }
+                          window.scrollTo({ top: 0, behavior: 'instant' })
+                          closeMenu()
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          width: '100%',
+                          background: isActive ? 'var(--item-active)' : 'none',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '6px 8px',
+                          cursor: 'pointer',
+                          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+                        }}
+                        onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover)' }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isActive ? 'var(--item-active)' : 'none' }}
+                      >
+                        <span style={{ fontSize: '16px', fontWeight: 500, color: 'var(--fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {doc.title || 'untitled'}
+                        </span>
+                        <span style={{ fontSize: '13px', color: 'var(--muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {dateLabel(doc.updatedAt)}
+                        </span>
+                      </button>
+                    )
+                  })}
+              </>
+            )}
+          </SubLevel>
+        )}
+
+        {/* ── Save level ── */}
+        {level === 'save' && (
+          <SubLevel title="Save" onBack={() => setLevel('main')}>
+            <MenuItem onClick={handleSaveDevice}>To Device</MenuItem>
+            <MenuItem onClick={handleSaveCloud}>
+              {status ? status : 'To Cloud'}
             </MenuItem>
           </SubLevel>
         )}
@@ -338,32 +353,21 @@ export function AppSidebar() {
           </SubLevel>
         )}
 
-        {/* ── Recent ── */}
-        {level === 'recent' && (
-          <SubLevel title="Recent" onBack={() => setLevel('main')}>
-            {docs.length === 0 && <Hint>no documents yet</Hint>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '0.5rem' }}>
-              {[...docs].sort((a, b) => b.updatedAt - a.updatedAt).map((doc) => {
-                const preview = getPreview(doc.content)
-                const trimmed = preview.length > 130 ? preview.slice(0, 130) + '…' : preview
-                const isActive = isWrite
-                  ? (doc.mode === 'write' && doc.id === activeWriteId)
-                  : (doc.mode === 'format' && doc.id === activeFormatId)
-                return (
-                  <RecentItem
-                    key={doc.id}
-                    doc={doc}
-                    isActive={isActive}
-                    trimmed={trimmed}
-                    onClick={() => {
-                      if (doc.mode === 'write') { setActiveWrite(doc.id); router.push('/write') }
-                      else { setActiveFormat(doc.id); router.push('/format') }
-                      window.scrollTo({ top: 0, behavior: 'instant' })
-                      if (window.innerWidth <= 768) closeMenu()
-                    }}
-                  />
-                )
-              })}
+        {/* ── About ── */}
+        {level === 'about' && (
+          <SubLevel title="About" onBack={() => setLevel('main')}>
+            <div style={{
+              fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+              fontSize: '16px',
+              lineHeight: 1.75,
+              color: 'var(--fg)',
+              opacity: 0.8,
+              userSelect: 'none',
+              marginTop: '0.5rem',
+            }}>
+              <p style={{ margin: '0 0 1em' }}>Arak is a minimal writing environment built for focus and clarity.</p>
+              <p style={{ margin: '0 0 1em' }}>It strips away everything that isn't the words.</p>
+              <p style={{ margin: 0 }}>More to come.</p>
             </div>
           </SubLevel>
         )}
@@ -564,75 +568,6 @@ function DriveRow({
         <div style={{ height: '1px', background: 'var(--subtle)', margin: '0 10px' }} />
       )}
     </div>
-  )
-}
-
-function RecentItem({
-  doc,
-  isActive,
-  trimmed,
-  onClick,
-}: {
-  doc: { id: string; title: string; mode: string; updatedAt: number }
-  isActive: boolean
-  trimmed: string
-  onClick: () => void
-}) {
-  const [hovered, setHovered] = useState(false)
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'block',
-        width: '100%',
-        background: isActive ? 'var(--item-active)' : hovered ? 'var(--item-hover)' : 'none',
-        border: 'none',
-        borderRadius: '6px',
-        padding: '8px 10px',
-        textAlign: 'left',
-        cursor: 'pointer',
-        transition: 'background 120ms',
-      }}
-    >
-      {trimmed && (
-        <p style={{
-          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '16px',
-          lineHeight: 1.2,
-          color: 'var(--fg)',
-          margin: '0 0 4px',
-          opacity: 0.6,
-        }}>
-          {trimmed}
-        </p>
-      )}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-        <span style={{
-          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '16px',
-          lineHeight: 1.2,
-          fontWeight: 500,
-          color: 'var(--fg)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
-          {doc.title || 'untitled'}
-        </span>
-        <span style={{
-          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: '16px',
-          lineHeight: 1.2,
-          color: 'var(--muted)',
-          whiteSpace: 'nowrap',
-          flexShrink: 0,
-        }}>
-          {doc.mode === 'format' ? 'fmt · ' : ''}{dateLabel(doc.updatedAt)}
-        </span>
-      </div>
-    </button>
   )
 }
 
