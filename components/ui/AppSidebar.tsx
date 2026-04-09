@@ -247,7 +247,7 @@ export function AppSidebar() {
         overflowX: 'hidden',
       }}
     >
-      <div className="sidebar-inner" style={{ padding: '18vh 40px 48px 80px', flex: 1 }}>
+      <div className="sidebar-inner" style={{ padding: '18vh 32px 48px 48px', flex: 1 }}>
 
         {/* ── Main level ── */}
         {level === 'main' && (
@@ -372,31 +372,34 @@ export function AppSidebar() {
         {level === 'settings' && (
           <SubLevel title="Settings" onBack={() => setLevel('main')}>
             <SettingRow label="Text size">
-              <Chip label="Small" selected={fontSize === 'small'} onClick={() => setFontSize('small')} />
-              <Chip label="Medium" selected={fontSize === 'medium'} onClick={() => setFontSize('medium')} />
-              <Chip label="Big" selected={fontSize === 'large'} onClick={() => setFontSize('large')} />
+              <PillGroup
+                options={[{ value: 'small', label: 'Small' }, { value: 'medium', label: 'Medium' }, { value: 'large', label: 'Big' }]}
+                value={fontSize}
+                onChange={(v) => setFontSize(v as SizeOption)}
+              />
             </SettingRow>
             <SettingRow label="Type style">
-              <Chip label="Sans" selected={font === 'sans'} onClick={() => setFont('sans')} />
-              <Chip label="Serif" selected={font === 'serif'} onClick={() => setFont('serif')} />
-              <Chip label="Mono" selected={font === 'mono'} onClick={() => setFont('mono')} />
+              <PillGroup
+                options={[{ value: 'sans', label: 'Sans' }, { value: 'serif', label: 'Serif' }, { value: 'mono', label: 'Mono' }]}
+                value={font}
+                onChange={(v) => setFont(v as Font)}
+              />
             </SettingRow>
             <SettingRow label="Appearance">
-              <Chip label="Light" selected={theme === 'light'} onClick={() => setTheme('light')} />
-              <Chip label="Shade" selected={theme === 'shade'} onClick={() => setTheme('shade')} />
-              <Chip label="Dark" selected={theme === 'dark'} onClick={() => setTheme('dark')} />
+              <PillGroup
+                options={[{ value: 'light', label: 'Light' }, { value: 'shade', label: 'Shade' }, { value: 'dark', label: 'Dark' }]}
+                value={theme}
+                onChange={(v) => setTheme(v as Theme)}
+              />
             </SettingRow>
             <SettingRow label="Highlight paragraph">
-              <Chip label="On" selected={focusModeStore} onClick={() => setFocusMode(true)} />
-              <Chip label="Off" selected={!focusModeStore} onClick={() => setFocusMode(false)} />
+              <Toggle value={focusModeStore} onChange={setFocusMode} />
             </SettingRow>
             <SettingRow label="Mark word classes">
-              <Chip label="On" selected={posHighlight} onClick={() => setPosHighlight(true)} />
-              <Chip label="Off" selected={!posHighlight} onClick={() => setPosHighlight(false)} />
+              <Toggle value={posHighlight} onChange={setPosHighlight} />
             </SettingRow>
             <SettingRow label="Word count">
-              <Chip label="On" selected={showWordCount} onClick={() => setShowWordCount(true)} />
-              <Chip label="Off" selected={!showWordCount} onClick={() => setShowWordCount(false)} />
+              <Toggle value={showWordCount} onChange={setShowWordCount} />
             </SettingRow>
           </SubLevel>
         )}
@@ -639,48 +642,96 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '8px 10px',
-      borderRadius: '6px',
-      gap: '12px',
+      padding: '0.15em 0',
+      gap: '16px',
     }}>
       <span style={{
         fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-        fontSize: '16px',
-        fontWeight: 500,
-        lineHeight: 1.2,
+        fontSize: '28px',
+        fontWeight: 400,
+        letterSpacing: '-0.04em',
+        lineHeight: 1.25,
         color: 'var(--fg)',
         whiteSpace: 'nowrap',
       }}>
         {label}
       </span>
-      <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+      <div style={{ flexShrink: 0 }}>
         {children}
       </div>
     </div>
   )
 }
 
-function Chip({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
-  const [hovered, setHovered] = useState(false)
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+    <div
+      onClick={() => onChange(!value)}
       style={{
-        background: selected ? 'var(--fg)' : hovered ? 'var(--item-hover)' : 'transparent',
-        color: selected ? 'var(--bg)' : 'var(--fg)',
-        border: 'none',
+        width: '44px',
+        height: '24px',
         borderRadius: '100px',
-        padding: '4px 11px',
-        fontSize: '13px',
-        fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+        background: value ? 'var(--fg)' : 'var(--item-hover)',
+        position: 'relative',
         cursor: 'pointer',
-        transition: 'background 120ms, color 120ms',
-        whiteSpace: 'nowrap',
+        transition: 'background 150ms',
+        flexShrink: 0,
       }}
     >
-      {label}
-    </button>
+      <div style={{
+        position: 'absolute',
+        top: '3px',
+        left: value ? '23px' : '3px',
+        width: '18px',
+        height: '18px',
+        borderRadius: '50%',
+        background: value ? 'var(--bg)' : 'var(--muted)',
+        transition: 'left 150ms',
+      }} />
+    </div>
+  )
+}
+
+function PillGroup({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: string; label: string }[]
+  value: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <div style={{
+      display: 'flex',
+      background: 'var(--item-hover)',
+      borderRadius: '100px',
+      padding: '3px',
+      gap: '2px',
+      minWidth: '180px',
+    }}>
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          style={{
+            flex: 1,
+            background: value === opt.value ? 'var(--fg)' : 'transparent',
+            color: value === opt.value ? 'var(--bg)' : 'var(--fg)',
+            border: 'none',
+            borderRadius: '100px',
+            padding: '7px 0',
+            fontSize: '13px',
+            fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+            cursor: 'pointer',
+            transition: 'background 120ms, color 120ms',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
   )
 }
