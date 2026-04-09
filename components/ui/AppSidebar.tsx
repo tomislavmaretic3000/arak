@@ -256,6 +256,16 @@ export function AppSidebar() {
             {docs.length > 0 && (
               <>
                 <div style={{ borderTop: '1px solid var(--subtle)', margin: '1.25em 0 0.75em' }} />
+                <div style={{
+                  fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+                  fontSize: '11px',
+                  letterSpacing: '0.07em',
+                  textTransform: 'uppercase',
+                  color: 'var(--muted)',
+                  opacity: 0.55,
+                  padding: '0 8px',
+                  marginBottom: '0.5em',
+                }}>Recent files</div>
                 {[...docs]
                   .sort((a, b) => b.updatedAt - a.updatedAt)
                   .slice(0, 5)
@@ -278,7 +288,7 @@ export function AppSidebar() {
                           justifyContent: 'space-between',
                           gap: '8px',
                           width: '100%',
-                          background: isActive ? 'var(--item-active)' : 'none',
+                          background: isActive ? 'rgba(255,255,255,0.4)' : 'none',
                           border: 'none',
                           borderRadius: '6px',
                           padding: '6px 8px',
@@ -286,7 +296,7 @@ export function AppSidebar() {
                           fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
                         }}
                         onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover)' }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isActive ? 'var(--item-active)' : 'none' }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isActive ? 'rgba(255,255,255,0.4)' : 'none' }}
                       >
                         <span style={{ fontSize: '16px', fontWeight: 500, color: 'var(--fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {doc.title || 'untitled'}
@@ -559,7 +569,7 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0.15em 0',
+      padding: '0.4em 0',
       gap: '16px',
     }}>
       <span style={{
