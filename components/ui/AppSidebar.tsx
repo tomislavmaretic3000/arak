@@ -533,6 +533,7 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
         letterSpacing: '-0.04em',
         lineHeight: 1.25,
         color: 'var(--fg)',
+        opacity: 0.45,
         whiteSpace: 'nowrap',
       }}>
         {label}
@@ -589,7 +590,7 @@ function PillGroup({
       borderRadius: '100px',
       padding: '3px',
       gap: '2px',
-      minWidth: '180px',
+      minWidth: '216px',
     }}>
       {options.map((opt) => (
         <button
@@ -597,8 +598,8 @@ function PillGroup({
           onClick={() => onChange(opt.value)}
           style={{
             flex: 1,
-            background: value === opt.value ? 'var(--fg)' : 'transparent',
-            color: value === opt.value ? 'var(--bg)' : 'var(--fg)',
+            background: value === opt.value ? 'var(--subtle)' : 'transparent',
+            color: 'var(--fg)',
             border: 'none',
             borderRadius: '100px',
             padding: '7px 0',
