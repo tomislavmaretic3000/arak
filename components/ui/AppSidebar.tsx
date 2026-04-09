@@ -15,7 +15,7 @@ import { Folder, FileText, ChevronLeft } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Level = 'main' | 'save' | 'open' | 'open-drive' | 'settings' | 'about'
+type Level = 'main' | 'save' | 'open' | 'open-drive' | 'settings'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -243,7 +243,7 @@ export function AppSidebar() {
             </div>
             <div style={{ borderTop: '1px solid var(--subtle)', paddingTop: '2em', display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
               <MenuItem onClick={() => setLevel('settings')}>Settings</MenuItem>
-              <MenuItem onClick={() => setLevel('about')}>About</MenuItem>
+              <MenuItem onClick={() => { router.push('/about'); closeMenu() }}>About</MenuItem>
             </div>
           </nav>
         )}
@@ -353,24 +353,6 @@ export function AppSidebar() {
           </SubLevel>
         )}
 
-        {/* ── About ── */}
-        {level === 'about' && (
-          <SubLevel title="About" onBack={() => setLevel('main')}>
-            <div style={{
-              fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-              fontSize: '16px',
-              lineHeight: 1.75,
-              color: 'var(--fg)',
-              opacity: 0.8,
-              userSelect: 'none',
-              marginTop: '0.5rem',
-            }}>
-              <p style={{ margin: '0 0 1em' }}>Arak is a minimal writing environment built for focus and clarity.</p>
-              <p style={{ margin: '0 0 1em' }}>It strips away everything that isn't the words.</p>
-              <p style={{ margin: 0 }}>More to come.</p>
-            </div>
-          </SubLevel>
-        )}
 
         {/* ── Settings ── */}
         {level === 'settings' && (
