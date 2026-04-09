@@ -15,7 +15,7 @@ import { Folder, FileText, ChevronLeft } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Level = 'main' | 'save' | 'open' | 'open-drive' | 'settings'
+type Level = 'main' | 'open-drive' | 'settings'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -70,6 +70,8 @@ const SUB_ITEM: React.CSSProperties = {
 export function AppSidebar() {
   const { menuOpen, closeMenu } = useUIStore()
   const [level, setLevel] = useState<Level>('main')
+  const [openExpanded, setOpenExpanded] = useState(false)
+  const [saveExpanded, setSaveExpanded] = useState(false)
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([])
   const [driveLoading, setDriveLoading] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
@@ -88,7 +90,7 @@ export function AppSidebar() {
   const formatTitle = useFormatStore((s) => s.title)
   const formatContent = useFormatStore((s) => s.content)
 
-  const { docs, activeWriteId, activeFormatId, createDoc, setActiveWrite, setActiveFormat } = useDocumentsStore()
+  const { activeWriteId, activeFormatId, createDoc, setActiveWrite, setActiveFormat } = useDocumentsStore()
   const activeDocId = isWrite ? activeWriteId : activeFormatId
   const { linkFile, getDriveId } = useDriveStore()
   const linkedDriveId = activeDocId ? getDriveId(activeDocId) : null
@@ -98,7 +100,7 @@ export function AppSidebar() {
 
   // Reset to main level when sidebar closes
   useEffect(() => {
-    if (!menuOpen) setTimeout(() => setLevel('main'), 300)
+    if (!menuOpen) setTimeout(() => { setLevel('main'); setOpenExpanded(false); setSaveExpanded(false) }, 300)
   }, [menuOpen])
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -237,8 +239,20 @@ export function AppSidebar() {
           <nav style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1em', paddingBottom: '2em' }}>
               <MenuItem onClick={handleNew}>New</MenuItem>
-              <MenuItem onClick={() => setLevel('open')}>Open</MenuItem>
-              <MenuItem onClick={() => setLevel('save')}>Save</MenuItem>
+              <MenuItem onClick={() => { setOpenExpanded(v => !v); setSaveExpanded(false) }}>Open</MenuItem>
+              {openExpanded && (
+                <>
+                  <SubItem onClick={handleOpenDevice}>Open from Device</SubItem>
+                  <SubItem onClick={handleOpenDrive}>Open from Cloud</SubItem>
+                </>
+              )}
+              <MenuItem onClick={() => { setSaveExpanded(v => !v); setOpenExpanded(false) }}>Save</MenuItem>
+              {saveExpanded && (
+                <>
+                  <SubItem onClick={handleSaveDevice}>Save to Device</SubItem>
+                  <SubItem onClick={handleSaveCloud}>{status || 'Save to Cloud'}</SubItem>
+                </>
+              )}
               <MenuItem onClick={handleFormat}>{isWrite ? 'Format' : 'Write'}</MenuItem>
             </div>
             <div style={{ borderTop: '1px solid var(--subtle)', paddingTop: '2em', display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
@@ -248,85 +262,11 @@ export function AppSidebar() {
           </nav>
         )}
 
-        {/* ── Open level ── */}
-        {level === 'open' && (
-          <SubLevel title="Open" onBack={() => setLevel('main')}>
-            <MenuItem onClick={handleOpenDevice}>From Device</MenuItem>
-            <MenuItem onClick={handleOpenDrive}>From Cloud</MenuItem>
-            {docs.length > 0 && (
-              <>
-                <div style={{ borderTop: '1px solid var(--subtle)', margin: '1.25em 0 0.75em' }} />
-                <div style={{
-                  fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-                  fontSize: '11px',
-                  letterSpacing: '0.07em',
-                  textTransform: 'uppercase',
-                  color: 'var(--muted)',
-                  opacity: 0.55,
-                  padding: '0 8px',
-                  marginBottom: '0.5em',
-                }}>Recent files</div>
-                {[...docs]
-                  .sort((a, b) => b.updatedAt - a.updatedAt)
-                  .slice(0, 5)
-                  .map((doc) => {
-                    const isActive = isWrite
-                      ? (doc.mode === 'write' && doc.id === activeWriteId)
-                      : (doc.mode === 'format' && doc.id === activeFormatId)
-                    return (
-                      <button
-                        key={doc.id}
-                        onClick={() => {
-                          if (doc.mode === 'write') { setActiveWrite(doc.id); router.push('/write') }
-                          else { setActiveFormat(doc.id); router.push('/format') }
-                          window.scrollTo({ top: 0, behavior: 'instant' })
-                          closeMenu()
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'baseline',
-                          justifyContent: 'space-between',
-                          gap: '8px',
-                          width: '100%',
-                          background: isActive ? 'rgba(255,255,255,0.4)' : 'none',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '6px 8px',
-                          cursor: 'pointer',
-                          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-                        }}
-                        onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--item-hover)' }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isActive ? 'rgba(255,255,255,0.4)' : 'none' }}
-                      >
-                        <span style={{ fontSize: '16px', fontWeight: 500, color: 'var(--fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {doc.title || 'untitled'}
-                        </span>
-                        <span style={{ fontSize: '13px', color: 'var(--muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                          {dateLabel(doc.updatedAt)}
-                        </span>
-                      </button>
-                    )
-                  })}
-              </>
-            )}
-          </SubLevel>
-        )}
-
-        {/* ── Save level ── */}
-        {level === 'save' && (
-          <SubLevel title="Save" onBack={() => setLevel('main')}>
-            <MenuItem onClick={handleSaveDevice}>To Device</MenuItem>
-            <MenuItem onClick={handleSaveCloud}>
-              {status ? status : 'To Cloud'}
-            </MenuItem>
-          </SubLevel>
-        )}
-
         {/* ── Open Drive file list ── */}
         {level === 'open-drive' && (
           <SubLevel
             title={folderStack[folderStack.length - 1].name}
-            onBack={folderStack.length > 1 ? handleFolderBack : () => setLevel('open')}
+            onBack={folderStack.length > 1 ? handleFolderBack : () => setLevel('main')}
           >
             {driveLoading && <Hint>loading…</Hint>}
             {driveError && <Hint>{driveError}</Hint>}
@@ -406,6 +346,20 @@ export function AppSidebar() {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+function SubItem({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ ...ITEM, paddingLeft: '1.1em', opacity: hovered ? 0.7 : 0.38 }}
+    >
+      {children}
+    </button>
+  )
+}
 
 function MenuItem({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   const [hovered, setHovered] = useState(false)
