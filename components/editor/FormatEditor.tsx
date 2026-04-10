@@ -374,7 +374,7 @@ export function FormatEditor() {
             zIndex: 50,
             background: '#1a1a18',
             borderRadius: 100,
-            padding: '4px 10px',
+            padding: '4px',
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',

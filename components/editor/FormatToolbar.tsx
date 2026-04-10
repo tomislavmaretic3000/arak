@@ -75,7 +75,7 @@ export function FormatToolbar({ editor }: { editor: Editor }) {
         className="format-toolbar-enter"
         style={{
           display: 'flex', flexDirection: 'row', alignItems: 'center',
-          gap: 2, background: '#1a1a18', borderRadius: 100, padding: '4px 10px',
+          gap: 2, background: '#1a1a18', borderRadius: 100, padding: '4px',
         }}
       >
         <Btn icon={<Bold {...ICON}/>}   title="Bold"   onClick={() => editor.chain().focus().toggleBold().run()}   active={editor.isActive('bold')} />
