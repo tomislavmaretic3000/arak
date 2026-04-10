@@ -38,28 +38,6 @@ function Btn({ icon, title, onClick, active }: { icon: React.ReactNode; title: s
   )
 }
 
-function Sep() {
-  return <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.15)', margin: '0 2px', flexShrink: 0, alignSelf: 'center' }} />
-}
-
-function SubDivider() {
-  return <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
-}
-
-function Expandable({ trigger, open, children }: { trigger: React.ReactNode; open: boolean; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: BTN }}>
-      {trigger}
-      {open && (
-        <>
-          <SubDivider />
-          {children}
-        </>
-      )}
-    </div>
-  )
-}
-
 // ── FormatToolbar ─────────────────────────────────────────────────────────────
 
 type Group = 'align' | 'heading' | 'list' | null
@@ -96,8 +74,8 @@ export function FormatToolbar({ editor }: { editor: Editor }) {
       <div
         className="format-toolbar-enter"
         style={{
-          display: 'flex', flexDirection: 'row', alignItems: 'flex-start',
-          gap: 2, background: '#1a1a18', borderRadius: 14, padding: '4px 6px',
+          display: 'flex', flexDirection: 'row', alignItems: 'center',
+          gap: 2, background: '#1a1a18', borderRadius: 8, padding: '4px 6px',
         }}
       >
         <Btn icon={<Bold {...ICON}/>}   title="Bold"   onClick={() => editor.chain().focus().toggleBold().run()}   active={editor.isActive('bold')} />
@@ -110,31 +88,35 @@ export function FormatToolbar({ editor }: { editor: Editor }) {
           editor.chain().focus().setLink({ href: url }).run()
         }} active={editor.isActive('link')} />
 
-        <Sep />
+        {/* Align group — inline horizontal expansion */}
+        <Btn icon={AlignIcon} title="Alignment" onClick={() => toggle('align')} active={openGroup === 'align'} />
+        {openGroup === 'align' && (
+          <>
+            <Btn icon={<AlignLeft {...ICON}/>}    title="Left"    onClick={() => applyAlign('left')}    active={align === 'left'} />
+            <Btn icon={<AlignCenter {...ICON}/>}  title="Center"  onClick={() => applyAlign('center')}  active={align === 'center'} />
+            <Btn icon={<AlignRight {...ICON}/>}   title="Right"   onClick={() => applyAlign('right')}   active={align === 'right'} />
+            <Btn icon={<AlignJustify {...ICON}/>} title="Justify" onClick={() => applyAlign('justify')} active={align === 'justify'} />
+          </>
+        )}
 
-        <Expandable open={openGroup === 'align'} trigger={
-          <Btn icon={AlignIcon} title="Alignment" onClick={() => toggle('align')} active={openGroup === 'align'} />
-        }>
-          <Btn icon={<AlignLeft {...ICON}/>}    title="Left"    onClick={() => applyAlign('left')}    active={align === 'left'} />
-          <Btn icon={<AlignCenter {...ICON}/>}  title="Center"  onClick={() => applyAlign('center')}  active={align === 'center'} />
-          <Btn icon={<AlignRight {...ICON}/>}   title="Right"   onClick={() => applyAlign('right')}   active={align === 'right'} />
-          <Btn icon={<AlignJustify {...ICON}/>} title="Justify" onClick={() => applyAlign('justify')} active={align === 'justify'} />
-        </Expandable>
+        {/* Heading group — inline horizontal expansion */}
+        <Btn icon={HeadingIcon} title="Heading" onClick={() => toggle('heading')} active={openGroup === 'heading' || activeHeading !== null} />
+        {openGroup === 'heading' && (
+          <>
+            <Btn icon={<Heading1 {...ICON}/>} title="Heading 1" onClick={() => applyHeading(1)} active={activeHeading === 1} />
+            <Btn icon={<Heading2 {...ICON}/>} title="Heading 2" onClick={() => applyHeading(2)} active={activeHeading === 2} />
+            <Btn icon={<Heading3 {...ICON}/>} title="Heading 3" onClick={() => applyHeading(3)} active={activeHeading === 3} />
+          </>
+        )}
 
-        <Expandable open={openGroup === 'heading'} trigger={
-          <Btn icon={HeadingIcon} title="Heading" onClick={() => toggle('heading')} active={openGroup === 'heading' || activeHeading !== null} />
-        }>
-          <Btn icon={<Heading1 {...ICON}/>} title="Heading 1" onClick={() => applyHeading(1)} active={activeHeading === 1} />
-          <Btn icon={<Heading2 {...ICON}/>} title="Heading 2" onClick={() => applyHeading(2)} active={activeHeading === 2} />
-          <Btn icon={<Heading3 {...ICON}/>} title="Heading 3" onClick={() => applyHeading(3)} active={activeHeading === 3} />
-        </Expandable>
-
-        <Expandable open={openGroup === 'list'} trigger={
-          <Btn icon={ListIcon} title="List" onClick={() => toggle('list')} active={openGroup === 'list' || editor.isActive('bulletList') || editor.isActive('orderedList')} />
-        }>
-          <Btn icon={<List {...ICON}/>}        title="Bullet list"  onClick={() => applyList('bullet')}  active={editor.isActive('bulletList')} />
-          <Btn icon={<ListOrdered {...ICON}/>} title="Ordered list" onClick={() => applyList('ordered')} active={editor.isActive('orderedList')} />
-        </Expandable>
+        {/* List group — inline horizontal expansion */}
+        <Btn icon={ListIcon} title="List" onClick={() => toggle('list')} active={openGroup === 'list' || editor.isActive('bulletList') || editor.isActive('orderedList')} />
+        {openGroup === 'list' && (
+          <>
+            <Btn icon={<List {...ICON}/>}        title="Bullet list"  onClick={() => applyList('bullet')}  active={editor.isActive('bulletList')} />
+            <Btn icon={<ListOrdered {...ICON}/>} title="Ordered list" onClick={() => applyList('ordered')} active={editor.isActive('orderedList')} />
+          </>
+        )}
       </div>
     </BubbleMenu>
   )

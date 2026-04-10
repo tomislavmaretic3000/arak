@@ -13,7 +13,8 @@ import { Placeholder } from '@tiptap/extension-placeholder'
 import { Typography } from '@tiptap/extension-typography'
 import { Underline } from '@tiptap/extension-underline'
 import { TextAlign } from '@tiptap/extension-text-align'
-import { Extension } from '@tiptap/core'
+import { Extension, type Range } from '@tiptap/core'
+import type { Editor } from '@tiptap/react'
 import Suggestion, {
   type SuggestionProps,
   type SuggestionKeyDownProps,
@@ -35,6 +36,8 @@ import {
   Minus,
   Quote,
   List as ListIcon,
+  Check,
+  X,
 } from 'lucide-react'
 
 const SLASH_ICON = { size: 18, strokeWidth: 1.5 }
@@ -49,6 +52,27 @@ function SlashIcon({ title }: { title: string }) {
   return null
 }
 
+function SlashBtn({ icon, title, onClick, active }: { icon: React.ReactNode; title: string; onClick: () => void; active?: boolean }) {
+  return (
+    <button
+      title={title}
+      onMouseDown={e => { e.preventDefault(); onClick() }}
+      style={{
+        width: 36, height: 36,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: active ? 'rgba(255,255,255,0.16)' : 'transparent',
+        border: 'none', borderRadius: 6, cursor: 'pointer',
+        color: active ? '#fff' : 'rgba(255,255,255,0.6)',
+        transition: 'background 100ms, color 100ms', padding: 0, flexShrink: 0,
+      }}
+      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)' }}
+      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+    >
+      {icon}
+    </button>
+  )
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface SlashMenuState {
@@ -56,7 +80,11 @@ interface SlashMenuState {
   selectedIdx: number
   command: (item: SlashCommandItem) => void
   rect: DOMRect
+  editor: Editor
+  range: Range
 }
+
+type SlashInputMode = { type: 'link' | 'image'; range: Range; editor: Editor } | null
 
 interface SlashHandlers {
   onStart: (props: SuggestionProps<SlashCommandItem>) => void
@@ -101,6 +129,10 @@ export function FormatEditor() {
   const slashMenuRef = useRef<SlashMenuState | null>(null)
   slashMenuRef.current = slashMenu
 
+  const [slashInputMode, setSlashInputMode] = useState<SlashInputMode>(null)
+  const [slashInputValue, setSlashInputValue] = useState('')
+  const slashInputRef = useRef<HTMLInputElement>(null)
+
   const handlersRef = useRef<SlashHandlers>({
     onStart: () => {},
     onUpdate: () => {},
@@ -113,24 +145,43 @@ export function FormatEditor() {
       onStart: (props) => {
         const coords = props.editor.view.coordsAtPos(props.range.from)
         const rect = new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
-        setSlashMenu({ items: props.items, selectedIdx: 0, command: props.command, rect })
+        setSlashMenu({ items: props.items, selectedIdx: 0, command: props.command, rect, editor: props.editor, range: props.range })
       },
       onUpdate: (props) => {
         const coords = props.editor.view.coordsAtPos(props.range.from)
         const rect = new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
         setSlashMenu((prev) =>
-          prev ? { ...prev, items: props.items, command: props.command, rect, selectedIdx: 0 } : null
+          prev ? { ...prev, items: props.items, command: props.command, rect, selectedIdx: 0, range: props.range } : null
         )
       },
       onKeyDown: () => false,
-      onExit: () => setSlashMenu(null),
+      onExit: () => { setSlashMenu(null); setSlashInputMode(null); setSlashInputValue('') },
     }
   })
+
+  // ── Slash input confirm/dismiss ──────────────────────────────────────────
+  const confirmSlashInput = useCallback(() => {
+    if (!slashInputMode) return
+    const { type, range, editor } = slashInputMode
+    const url = slashInputValue.trim()
+    if (url) {
+      if (type === 'link')  editor.chain().focus().deleteRange(range).setLink({ href: url }).run()
+      if (type === 'image') editor.chain().focus().deleteRange(range).setImage({ src: url }).run()
+    } else {
+      editor.chain().focus().deleteRange(range).run()
+    }
+    setSlashInputMode(null); setSlashInputValue(''); setSlashMenu(null)
+  }, [slashInputMode, slashInputValue])
+
+  const dismissSlashInput = useCallback(() => {
+    setSlashInputMode(null); setSlashInputValue('')
+  }, [])
 
   // ── Slash menu keyboard navigation ───────────────────────────────────────
   useEffect(() => {
     if (!slashMenu) return
     const onKey = (e: KeyboardEvent) => {
+      if (slashInputMode) return  // input field handles its own keys
       const menu = slashMenuRef.current
       if (!menu || menu.items.length === 0) return
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -154,7 +205,7 @@ export function FormatEditor() {
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [slashMenu])
+  }, [slashMenu, slashInputMode])
 
   const SlashCommandExtension = useMemo(
     () =>
@@ -316,7 +367,7 @@ export function FormatEditor() {
             left: slashMenu.rect.left,
             zIndex: 50,
             background: '#1a1a18',
-            borderRadius: 14,
+            borderRadius: 8,
             padding: '4px 6px',
             display: 'flex',
             flexDirection: 'row',
@@ -324,36 +375,47 @@ export function FormatEditor() {
             gap: 2,
           }}
         >
-          {slashMenu.items.map((item, i) => (
-            <button
-              key={item.title}
-              title={item.title}
-              onMouseDown={(e) => { e.preventDefault(); slashMenu.command(item) }}
-              style={{
-                width: 36,
-                height: 36,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: i === slashMenu.selectedIdx ? 'rgba(255,255,255,0.16)' : 'transparent',
-                border: 'none',
-                borderRadius: 6,
-                cursor: 'pointer',
-                color: i === slashMenu.selectedIdx ? '#fff' : 'rgba(255,255,255,0.6)',
-                transition: 'background 100ms, color 100ms',
-                padding: 0,
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                if (i !== slashMenu.selectedIdx) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
-              }}
-              onMouseLeave={(e) => {
-                if (i !== slashMenu.selectedIdx) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
-              }}
-            >
-              <SlashIcon title={item.title} />
-            </button>
-          ))}
+          {slashInputMode ? (
+            <>
+              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', padding: '0 4px' }}>
+                <SlashIcon title={slashInputMode.type === 'link' ? 'Link' : 'Image'} />
+              </span>
+              <input
+                ref={slashInputRef}
+                autoFocus
+                value={slashInputValue}
+                onChange={e => setSlashInputValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); confirmSlashInput() }
+                  if (e.key === 'Escape') { e.preventDefault(); dismissSlashInput() }
+                }}
+                placeholder={slashInputMode.type === 'link' ? 'Paste URL…' : 'Image URL…'}
+                style={{
+                  background: 'none', border: 'none', outline: 'none',
+                  color: '#fff', fontSize: 13, flex: 1, minWidth: 180, padding: '0 4px',
+                  fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+                }}
+              />
+              <SlashBtn icon={<Check size={16} strokeWidth={1.5} />} title="Confirm" onClick={confirmSlashInput} />
+              <SlashBtn icon={<X size={16} strokeWidth={1.5} />}     title="Dismiss" onClick={dismissSlashInput} />
+            </>
+          ) : (
+            slashMenu.items.map((item, i) => (
+              <SlashBtn
+                key={item.title}
+                icon={<SlashIcon title={item.title} />}
+                title={item.title}
+                active={i === slashMenu.selectedIdx}
+                onClick={() => {
+                  if (item.title === 'Link' || item.title === 'Image') {
+                    setSlashInputMode({ type: item.title.toLowerCase() as 'link' | 'image', range: slashMenu.range, editor: slashMenu.editor })
+                  } else {
+                    slashMenu.command(item)
+                  }
+                }}
+              />
+            ))
+          )}
         </div>
       )}
     </div>
