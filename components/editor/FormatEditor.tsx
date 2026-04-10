@@ -25,6 +25,7 @@ import { useDocumentsStore } from '@/store/documents'
 import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommands'
 import { PageBreak } from '@/lib/editor/pageBreak'
 import { FormatToolbar } from './FormatToolbar'
+import { TableToolbar } from './TableToolbar'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
 // ── Slash menu icons ──────────────────────────────────────────────────────────
@@ -362,6 +363,9 @@ export function FormatEditor() {
 
       {/* ── Dark icon toolbar ── */}
       <FormatToolbar editor={editor} />
+
+      {/* ── Table toolbar ── */}
+      <TableToolbar editor={editor} />
 
       {/* ── Slash command menu ── */}
       {slashMenu && slashMenu.items.length > 0 && (
