@@ -124,7 +124,10 @@ body {
 .tiptap h2 { font-size: 1.45em; font-weight: 500; margin: 2em 0 0.45em; line-height: 1.25; }
 .tiptap h3 { font-size: 1.15em; font-weight: 500; margin: 1.75em 0 0.35em; line-height: 1.35; }
 .tiptap p  { margin: 0 0 1em; orphans: 3; widows: 3; }
-.tiptap ul, .tiptap ol { padding-left: 1.5em; margin: 0 0 1em; }
+.tiptap ul { padding-left: 1.5em; margin: 0 0 1em; list-style-type: disc; }
+.tiptap ol { padding-left: 1.5em; margin: 0 0 1em; list-style-type: decimal; }
+.tiptap ul ul { list-style-type: circle; }
+.tiptap ul ul ul { list-style-type: square; }
 .tiptap li { margin-bottom: 0.3em; line-height: 1.65; }
 .tiptap li p { margin: 0; }
 .tiptap blockquote {
