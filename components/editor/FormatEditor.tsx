@@ -196,7 +196,13 @@ export function FormatEditor() {
         e.preventDefault()
         e.stopPropagation()
         const item = menu.items[menu.selectedIdx]
-        if (item) menu.command(item)
+        if (item) {
+          if (item.title === 'Link' || item.title === 'Image') {
+            setSlashInputMode({ type: item.title.toLowerCase() as 'link' | 'image', range: menu.range, editor: menu.editor })
+          } else {
+            menu.command(item)
+          }
+        }
       } else if (e.key === 'Escape') {
         e.preventDefault()
         e.stopPropagation()
