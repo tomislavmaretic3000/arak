@@ -26,6 +26,7 @@ import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommand
 import { PageBreak } from '@/lib/editor/pageBreak'
 import { FormatToolbar } from './FormatToolbar'
 import { TableToolbar } from './TableToolbar'
+import { MarginEditor } from './MarginEditor'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
 // ── Slash menu icons ──────────────────────────────────────────────────────────
@@ -97,8 +98,8 @@ interface SlashHandlers {
 // ── FormatEditor ──────────────────────────────────────────────────────────────
 
 export function FormatEditor() {
-  const { content, title, setContent, setTitle, markSaved, markDirty } =
-    useFormatStore()
+  const { content, title, setContent, setTitle, markSaved, markDirty,
+    marginTop, marginRight, marginBottom, marginLeft } = useFormatStore()
   const font = useEditorStore((s) => s.font)
   const fontSize = useEditorStore((s) => s.fontSize)
   const { docs, activeFormatId, createDoc, updateDoc } = useDocumentsStore()
@@ -125,6 +126,8 @@ export function FormatEditor() {
   }, [activeFormatId])
 
   const editorRef = useRef<ReturnType<typeof useEditor>>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [bgHovered, setBgHovered] = useState(false)
 
   const [slashMenu, setSlashMenu] = useState<SlashMenuState | null>(null)
   const slashMenuRef = useRef<SlashMenuState | null>(null)
@@ -355,9 +358,18 @@ export function FormatEditor() {
   editorRef.current = editor
 
   return (
-    <div key={activeFormatId ?? 'format'} className="format-page-bg content-enter">
+    <div
+      key={activeFormatId ?? 'format'}
+      className="format-page-bg content-enter"
+      onMouseEnter={() => setBgHovered(true)}
+      onMouseLeave={() => setBgHovered(false)}
+    >
       {/* ── A4 card ── */}
-      <div className="format-page-card">
+      <div
+        ref={cardRef}
+        className="format-page-card"
+        style={{ padding: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px` }}
+      >
         <EditorContent editor={editor} />
       </div>
 
@@ -366,6 +378,9 @@ export function FormatEditor() {
 
       {/* ── Table toolbar ── */}
       <TableToolbar editor={editor} />
+
+      {/* ── Margin handles ── */}
+      <MarginEditor cardRef={cardRef} visible={bgHovered} />
 
       {/* ── Slash command menu ── */}
       {slashMenu && slashMenu.items.length > 0 && (
