@@ -361,6 +361,7 @@ export function FormatEditor() {
     <div
       key={activeFormatId ?? 'format'}
       className="format-page-bg content-enter"
+      style={{ position: 'relative' }}
       onMouseEnter={() => setBgHovered(true)}
       onMouseLeave={() => setBgHovered(false)}
     >
@@ -369,6 +370,8 @@ export function FormatEditor() {
         ref={cardRef}
         className="format-page-card"
         style={{ padding: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px` }}
+        onMouseEnter={() => setBgHovered(false)}
+        onMouseLeave={() => setBgHovered(true)}
       >
         <EditorContent editor={editor} />
       </div>
