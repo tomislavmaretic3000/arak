@@ -88,35 +88,35 @@ export function FormatToolbar({ editor }: { editor: Editor }) {
           editor.chain().focus().setLink({ href: url }).run()
         }} active={editor.isActive('link')} />
 
-        {/* Align group — inline horizontal expansion */}
-        <Btn icon={AlignIcon} title="Alignment" onClick={() => toggle('align')} active={openGroup === 'align'} />
-        {openGroup === 'align' && (
-          <>
-            <Btn icon={<AlignLeft {...ICON}/>}    title="Left"    onClick={() => applyAlign('left')}    active={align === 'left'} />
-            <Btn icon={<AlignCenter {...ICON}/>}  title="Center"  onClick={() => applyAlign('center')}  active={align === 'center'} />
-            <Btn icon={<AlignRight {...ICON}/>}   title="Right"   onClick={() => applyAlign('right')}   active={align === 'right'} />
-            <Btn icon={<AlignJustify {...ICON}/>} title="Justify" onClick={() => applyAlign('justify')} active={align === 'justify'} />
-          </>
-        )}
+        {/* Align group — trigger hidden when open to avoid duplicate */}
+        {openGroup !== 'align'
+          ? <Btn icon={AlignIcon} title="Alignment" onClick={() => toggle('align')} active={false} />
+          : <>
+              <Btn icon={<AlignLeft {...ICON}/>}    title="Left"    onClick={() => applyAlign('left')}    active={align === 'left'} />
+              <Btn icon={<AlignCenter {...ICON}/>}  title="Center"  onClick={() => applyAlign('center')}  active={align === 'center'} />
+              <Btn icon={<AlignRight {...ICON}/>}   title="Right"   onClick={() => applyAlign('right')}   active={align === 'right'} />
+              <Btn icon={<AlignJustify {...ICON}/>} title="Justify" onClick={() => applyAlign('justify')} active={align === 'justify'} />
+            </>
+        }
 
-        {/* Heading group — inline horizontal expansion */}
-        <Btn icon={HeadingIcon} title="Heading" onClick={() => toggle('heading')} active={openGroup === 'heading' || activeHeading !== null} />
-        {openGroup === 'heading' && (
-          <>
-            <Btn icon={<Heading1 {...ICON}/>} title="Heading 1" onClick={() => applyHeading(1)} active={activeHeading === 1} />
-            <Btn icon={<Heading2 {...ICON}/>} title="Heading 2" onClick={() => applyHeading(2)} active={activeHeading === 2} />
-            <Btn icon={<Heading3 {...ICON}/>} title="Heading 3" onClick={() => applyHeading(3)} active={activeHeading === 3} />
-          </>
-        )}
+        {/* Heading group — trigger hidden when open */}
+        {openGroup !== 'heading'
+          ? <Btn icon={HeadingIcon} title="Heading" onClick={() => toggle('heading')} active={activeHeading !== null} />
+          : <>
+              <Btn icon={<Heading1 {...ICON}/>} title="Heading 1" onClick={() => applyHeading(1)} active={activeHeading === 1} />
+              <Btn icon={<Heading2 {...ICON}/>} title="Heading 2" onClick={() => applyHeading(2)} active={activeHeading === 2} />
+              <Btn icon={<Heading3 {...ICON}/>} title="Heading 3" onClick={() => applyHeading(3)} active={activeHeading === 3} />
+            </>
+        }
 
-        {/* List group — inline horizontal expansion */}
-        <Btn icon={ListIcon} title="List" onClick={() => toggle('list')} active={openGroup === 'list' || editor.isActive('bulletList') || editor.isActive('orderedList')} />
-        {openGroup === 'list' && (
-          <>
-            <Btn icon={<List {...ICON}/>}        title="Bullet list"  onClick={() => applyList('bullet')}  active={editor.isActive('bulletList')} />
-            <Btn icon={<ListOrdered {...ICON}/>} title="Ordered list" onClick={() => applyList('ordered')} active={editor.isActive('orderedList')} />
-          </>
-        )}
+        {/* List group — trigger hidden when open */}
+        {openGroup !== 'list'
+          ? <Btn icon={ListIcon} title="List" onClick={() => toggle('list')} active={editor.isActive('bulletList') || editor.isActive('orderedList')} />
+          : <>
+              <Btn icon={<List {...ICON}/>}        title="Bullet list"  onClick={() => applyList('bullet')}  active={editor.isActive('bulletList')} />
+              <Btn icon={<ListOrdered {...ICON}/>} title="Ordered list" onClick={() => applyList('ordered')} active={editor.isActive('orderedList')} />
+            </>
+        }
       </div>
     </BubbleMenu>
   )
