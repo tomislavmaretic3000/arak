@@ -25,7 +25,7 @@ function Btn({ icon, title, onClick, active }: { icon: React.ReactNode; title: s
         width: BTN, height: BTN,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: active ? 'rgba(255,255,255,0.16)' : 'transparent',
-        border: 'none', borderRadius: 6, cursor: 'pointer',
+        border: 'none', borderRadius: '50%', cursor: 'pointer',
         color: active ? '#fff' : 'rgba(255,255,255,0.6)',
         transition: 'background 100ms, color 100ms',
         padding: 0, flexShrink: 0,
@@ -75,7 +75,7 @@ export function FormatToolbar({ editor }: { editor: Editor }) {
         className="format-toolbar-enter"
         style={{
           display: 'flex', flexDirection: 'row', alignItems: 'center',
-          gap: 2, background: '#1a1a18', borderRadius: 8, padding: '4px 6px',
+          gap: 2, background: '#1a1a18', borderRadius: 100, padding: '4px 10px',
         }}
       >
         <Btn icon={<Bold {...ICON}/>}   title="Bold"   onClick={() => editor.chain().focus().toggleBold().run()}   active={editor.isActive('bold')} />
