@@ -24,6 +24,7 @@ import { useEditorStore } from '@/store/editor'
 import { useDocumentsStore } from '@/store/documents'
 import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommands'
 import { PageBreak } from '@/lib/editor/pageBreak'
+import { Divider } from '@/lib/editor/divider'
 import { FormatToolbar } from './FormatToolbar'
 import { TableToolbar } from './TableToolbar'
 import { MarginEditor } from './MarginEditor'
@@ -254,7 +255,8 @@ export function FormatEditor() {
   // ── TipTap editor ──────────────────────────────────────────────────────────
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ horizontalRule: { HTMLAttributes: { class: 'arak-hr' } } }),
+      StarterKit.configure({ horizontalRule: false }),
+      Divider,
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'arak-link' } }),
       Image,
       Table.configure({ resizable: false }),

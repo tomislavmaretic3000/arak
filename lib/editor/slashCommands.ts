@@ -35,7 +35,7 @@ export const SLASH_COMMANDS: SlashCommandItem[] = [
   {
     title: 'Divider',
     command: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+      editor.chain().focus().deleteRange(range).insertDivider().run(),
   },
   {
     title: 'Quote',
