@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useCallback, useEffect, useState, useMemo } from 'react'
-import { useEditorStore, FONT_SIZE_MAP, LINE_HEIGHT_MAP } from '@/store/editor'
+import { useEditorStore, FONT_SIZE_MAP, SPACING_MAP } from '@/store/editor'
 import { useFilesStore } from '@/store/files'
 import { useSearchStore } from '@/store/search'
 import { useDocumentsStore } from '@/store/documents'
@@ -54,7 +54,7 @@ function posHighlightContent(text: string): React.ReactNode {
 }
 
 export function WriteEditor() {
-  const { content, focusMode: focusModeStore, posHighlight, showWordCount, font, fontSize, lineHeight, setContent } =
+  const { content, focusMode: focusModeStore, posHighlight, showWordCount, font, fontSize, spacing, setContent } =
     useEditorStore()
   const menuOpen = useUIStore((s) => s.menuOpen)
   const focusMode = focusModeStore && !menuOpen
@@ -82,13 +82,14 @@ export function WriteEditor() {
       ? 'var(--font-noto-mono)'
       : 'var(--font-noto-sans)'
 
-  const fontSizePx  = FONT_SIZE_MAP[fontSize]
-  const lineHeightV = LINE_HEIGHT_MAP[lineHeight]
+  const fontSizePx = FONT_SIZE_MAP[fontSize]
+  const { lineHeight, letterSpacing, wordSpacing } = SPACING_MAP[spacing]
 
   const textStyle: React.CSSProperties = {
     fontSize: fontSizePx,
-    lineHeight: lineHeightV,
-    letterSpacing: '0.01em',
+    lineHeight,
+    letterSpacing,
+    wordSpacing,
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
     overflowWrap: 'break-word',
@@ -342,7 +343,7 @@ export function WriteEditor() {
           <AnimatedPlaceholder
             fontFamily={fontFamily}
             fontSize={fontSizePx}
-            lineHeight={lineHeightV}
+            lineHeight={lineHeight}
           />
         )}
 

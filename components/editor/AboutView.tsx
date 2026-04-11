@@ -1,6 +1,6 @@
 'use client'
 
-import { useEditorStore, FONT_SIZE_MAP, LINE_HEIGHT_MAP } from '@/store/editor'
+import { useEditorStore, FONT_SIZE_MAP, SPACING_MAP } from '@/store/editor'
 
 const ABOUT_TEXT = `Arak is a minimal writing environment designed to get out of your way and let you focus on the words.
 
@@ -15,7 +15,7 @@ Focus mode dims everything outside the current paragraph, and word class highlig
 A live word count tracks your progress quietly in the corner, out of the way until you need it.`
 
 export function AboutView() {
-  const { font, fontSize, lineHeight } = useEditorStore()
+  const { font, fontSize, spacing } = useEditorStore()
 
   const fontFamily =
     font === 'serif'
@@ -25,7 +25,7 @@ export function AboutView() {
       : 'var(--font-noto-sans)'
 
   const fontSizePx  = FONT_SIZE_MAP[fontSize]
-  const lineHeightV = LINE_HEIGHT_MAP[lineHeight]
+  const { lineHeight: lineHeightV } = SPACING_MAP[spacing]
 
   return (
     <div

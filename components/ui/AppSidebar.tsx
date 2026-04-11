@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
-import { useEditorStore, type Theme, type Font, type SizeOption } from '@/store/editor'
+import { useEditorStore, type Theme, type Font, type SizeOption, type SpacingOption } from '@/store/editor'
 import { useFilesStore } from '@/store/files'
 import { useFormatStore } from '@/store/format'
 import { useDocumentsStore } from '@/store/documents'
@@ -82,7 +82,7 @@ export function AppSidebar() {
   const pathname = usePathname()
   const isWrite = pathname === '/write'
 
-  const { theme, font, fontSize, focusMode: focusModeStore, posHighlight, showWordCount, setTheme, setFont, setFontSize, setFocusMode, setPosHighlight, setShowWordCount } = useEditorStore()
+  const { theme, font, fontSize, spacing, focusMode: focusModeStore, posHighlight, showWordCount, setTheme, setFont, setFontSize, setSpacing, setFocusMode, setPosHighlight, setShowWordCount } = useEditorStore()
   const writeContent = useEditorStore((s) => s.content)
   const setWriteContent = useEditorStore((s) => s.setContent)
   const writeTitle = useFilesStore((s) => s.title)
@@ -312,6 +312,13 @@ export function AppSidebar() {
                 options={[{ value: 'small', label: 'Small' }, { value: 'medium', label: 'Medium' }, { value: 'large', label: 'Big' }]}
                 value={fontSize}
                 onChange={(v) => setFontSize(v as SizeOption)}
+              />
+            </SettingRow>
+            <SettingRow label="Spacing">
+              <PillGroup
+                options={[{ value: 'small', label: 'Tight' }, { value: 'normal', label: 'Normal' }, { value: 'large', label: 'Loose' }]}
+                value={spacing}
+                onChange={(v) => setSpacing(v as SpacingOption)}
               />
             </SettingRow>
             <SettingRow label="Type style">
