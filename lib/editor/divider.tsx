@@ -42,7 +42,7 @@ function DividerView({ node, updateAttributes, selected }: NodeViewProps) {
     window.addEventListener('mouseup', onUp)
   }, [thickness, updateAttributes])
 
-  const active = isDragging || hovered || selected
+  const showActive = isDragging || hovered || selected
 
   return (
     <NodeViewWrapper
@@ -59,35 +59,31 @@ function DividerView({ node, updateAttributes, selected }: NodeViewProps) {
       onMouseLeave={() => setHovered(false)}
       onMouseDown={onMouseDown}
     >
+      {/* px label above the line, visible on hover/drag */}
+      <span style={{
+        display: 'block',
+        fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+        fontSize: 10,
+        fontWeight: 500,
+        letterSpacing: '0.02em',
+        color: 'rgba(26,26,24,0.4)',
+        marginBottom: 4,
+        opacity: showActive ? 1 : 0,
+        transition: 'opacity 150ms',
+        pointerEvents: 'none',
+        userSelect: 'none',
+      }}>
+        {thickness}px
+      </span>
       <div
         style={{
           height: thickness,
-          background: active ? '#5b8dd9' : '#d4d4ce',
+          background: showActive ? '#1a1a18' : '#d4d4ce',
           borderRadius: thickness > 2 ? 2 : 0,
-          transition: isDragging ? 'none' : 'background 150ms, height 80ms',
+          transition: isDragging ? 'none' : 'background 150ms',
           pointerEvents: 'none',
         }}
       />
-      {isDragging && (
-        <span style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-          fontSize: 10,
-          fontWeight: 500,
-          color: '#5b8dd9',
-          background: 'rgba(255,255,255,0.92)',
-          padding: '2px 6px',
-          borderRadius: 4,
-          whiteSpace: 'nowrap',
-          pointerEvents: 'none',
-          userSelect: 'none',
-        }}>
-          {thickness}px
-        </span>
-      )}
     </NodeViewWrapper>
   )
 }
