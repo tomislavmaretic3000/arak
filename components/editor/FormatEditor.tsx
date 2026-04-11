@@ -388,13 +388,16 @@ export function FormatEditor() {
       <MarginEditor cardRef={cardRef} visible={bgHovered} />
 
       {/* ── Slash command menu ── */}
-      {slashMenu && slashMenu.items.length > 0 && (
+      {slashMenu && slashMenu.items.length > 0 && (() => {
+        // Recalculate position fresh every render so scroll never desynchronises
+        const coords = slashMenu.editor.view.coordsAtPos(slashMenu.range.from)
+        return (
         <div
           className="format-toolbar-enter"
           style={{
             position: 'fixed',
-            top: slashMenu.rect.bottom + 8,
-            left: slashMenu.rect.left,
+            top: coords.bottom + 8,
+            left: coords.left,
             zIndex: 50,
             background: '#1a1a18',
             borderRadius: 100,
@@ -447,7 +450,8 @@ export function FormatEditor() {
             ))
           )}
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
