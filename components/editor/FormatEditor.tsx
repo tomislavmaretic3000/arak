@@ -20,7 +20,7 @@ import Suggestion, {
   type SuggestionProps,
   type SuggestionKeyDownProps,
 } from '@tiptap/suggestion'
-import { useFormatStore } from '@/store/format'
+import { useFormatStore, PAPER_SIZES } from '@/store/format'
 import { useEditorStore } from '@/store/editor'
 import { useDocumentsStore } from '@/store/documents'
 import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommands'
@@ -29,6 +29,7 @@ import { Divider } from '@/lib/editor/divider'
 import { FormatToolbar } from './FormatToolbar'
 import { TableToolbar } from './TableToolbar'
 import { MarginEditor } from './MarginEditor'
+import { PageOverlay } from './PageOverlay'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
 // ── Slash menu icons ──────────────────────────────────────────────────────────
@@ -101,7 +102,8 @@ interface SlashHandlers {
 
 export function FormatEditor() {
   const { content, title, setContent, setTitle, markSaved, markDirty,
-    marginTop, marginRight, marginBottom, marginLeft } = useFormatStore()
+    marginTop, marginRight, marginBottom, marginLeft,
+    paperFormat, showHeader, showFooter, showPageNumbers, pageNumberPos } = useFormatStore()
   const font = useEditorStore((s) => s.font)
   const fontSize = useEditorStore((s) => s.fontSize)
   const { docs, activeFormatId, createDoc, updateDoc } = useDocumentsStore()
@@ -369,11 +371,14 @@ export function FormatEditor() {
       onMouseEnter={() => setBgHovered(true)}
       onMouseLeave={() => setBgHovered(false)}
     >
-      {/* ── A4 card ── */}
+      {/* ── Page card ── */}
       <div
         ref={cardRef}
-        className="format-page-card"
-        style={{ padding: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px` }}
+        className={`format-page-card paper-${paperFormat}${paperFormat !== 'none' ? ' has-pages' : ''}`}
+        style={{
+          padding: `${Math.max(marginTop, showHeader ? 48 : 0)}px ${marginRight}px ${Math.max(marginBottom, showFooter ? 48 : 0)}px ${marginLeft}px`,
+          ...(paperFormat !== 'none' && { '--page-height': `${PAPER_SIZES[paperFormat].height}px` } as React.CSSProperties),
+        }}
         onMouseEnter={() => setBgHovered(false)}
         onMouseLeave={() => setBgHovered(true)}
       >
@@ -388,6 +393,16 @@ export function FormatEditor() {
 
       {/* ── Margin handles ── */}
       <MarginEditor cardRef={cardRef} visible={bgHovered} />
+
+      {/* ── Page numbers / header / footer ── */}
+      <PageOverlay
+        cardRef={cardRef}
+        paperFormat={paperFormat}
+        showHeader={showHeader}
+        showFooter={showFooter}
+        showPageNumbers={showPageNumbers}
+        pageNumberPos={pageNumberPos}
+      />
 
       {/* ── Slash command menu ── */}
       {slashMenu && slashMenu.items.length > 0 && (() => {

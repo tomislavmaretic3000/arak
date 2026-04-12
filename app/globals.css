@@ -211,16 +211,32 @@ body {
   padding: 125px 24px 96px;
 }
 
-/* ── A4 page card ── */
+/* ── Page card base ── */
 .format-page-card {
-  width: 100%;
-  max-width: 960px;
-  min-height: 1123px;
   margin: 0 auto;
   background: #fff;
   padding: 96px;
   box-sizing: border-box;
   overflow: visible;
+}
+
+/* Paper format variants */
+.format-page-card.paper-a4     { width: 794px; max-width: 100%; }
+.format-page-card.paper-letter { width: 816px; max-width: 100%; }
+.format-page-card.paper-none   { width: 100%; max-width: 960px; min-height: 1123px; }
+
+/* Page separator lines via CSS — no JS required */
+.format-page-card.has-pages {
+  --page-gap: 32px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    white 0px,
+    white calc(var(--page-height) - var(--page-gap)),
+    rgba(0, 0, 0, 0.04) calc(var(--page-height) - var(--page-gap)),
+    rgba(0, 0, 0, 0.04) var(--page-height)
+  );
+  background-size: 100% var(--page-height);
+  background-position: 0 0;
 }
 
 /* ── Page break node ── */

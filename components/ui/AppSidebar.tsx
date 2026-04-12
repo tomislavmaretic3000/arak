@@ -5,6 +5,7 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
 import { useEditorStore, type Theme, type Font, type SizeOption, type SpacingOption } from '@/store/editor'
+import { type PaperFormat, type PageNumberPos } from '@/store/format'
 import { useFilesStore } from '@/store/files'
 import { useFormatStore } from '@/store/format'
 import { useDocumentsStore } from '@/store/documents'
@@ -89,6 +90,16 @@ export function AppSidebar() {
   const setWriteTitle = useFilesStore((s) => s.setTitle)
   const formatTitle = useFormatStore((s) => s.title)
   const formatContent = useFormatStore((s) => s.content)
+  const paperFormat = useFormatStore((s) => s.paperFormat)
+  const showHeader = useFormatStore((s) => s.showHeader)
+  const showFooter = useFormatStore((s) => s.showFooter)
+  const showPageNumbers = useFormatStore((s) => s.showPageNumbers)
+  const pageNumberPos = useFormatStore((s) => s.pageNumberPos)
+  const setPaperFormat = useFormatStore((s) => s.setPaperFormat)
+  const setShowHeader = useFormatStore((s) => s.setShowHeader)
+  const setShowFooter = useFormatStore((s) => s.setShowFooter)
+  const setShowPageNumbers = useFormatStore((s) => s.setShowPageNumbers)
+  const setPageNumberPos = useFormatStore((s) => s.setPageNumberPos)
 
   const { activeWriteId, activeFormatId, createDoc, setActiveWrite, setActiveFormat } = useDocumentsStore()
   const activeDocId = isWrite ? activeWriteId : activeFormatId
@@ -344,6 +355,37 @@ export function AppSidebar() {
             <SettingRow label="Word count">
               <Toggle value={showWordCount} onChange={setShowWordCount} />
             </SettingRow>
+
+            {/* ── Format-only: Page settings ── */}
+            {!isWrite && (
+              <>
+                <SettingRow label="Paper">
+                  <PillGroup
+                    options={[{ value: 'a4', label: 'A4' }, { value: 'letter', label: 'Letter' }, { value: 'none', label: 'Off' }]}
+                    value={paperFormat}
+                    onChange={(v) => setPaperFormat(v as PaperFormat)}
+                  />
+                </SettingRow>
+                <SettingRow label="Page numbers">
+                  <Toggle value={showPageNumbers} onChange={setShowPageNumbers} />
+                </SettingRow>
+                {showPageNumbers && (
+                  <SettingRow label="Position">
+                    <PillGroup
+                      options={[{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]}
+                      value={pageNumberPos}
+                      onChange={(v) => setPageNumberPos(v as PageNumberPos)}
+                    />
+                  </SettingRow>
+                )}
+                <SettingRow label="Header">
+                  <Toggle value={showHeader} onChange={setShowHeader} />
+                </SettingRow>
+                <SettingRow label="Footer">
+                  <Toggle value={showFooter} onChange={setShowFooter} />
+                </SettingRow>
+              </>
+            )}
           </SubLevel>
         )}
 
