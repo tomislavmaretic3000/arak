@@ -5,6 +5,10 @@ import { useFormatStore, MARGIN_MIN, MARGIN_MAX } from '@/store/format'
 
 type Side = 'top' | 'right' | 'bottom' | 'left'
 
+const LABEL_COLOR = 'rgba(0,0,0,0.32)'
+const LINE_COLOR  = 'rgba(0,0,0,0.18)'
+const ACTIVE_COLOR = 'rgba(0,0,0,0.5)'
+
 interface HandleProps {
   side: Side
   cardRef: React.RefObject<HTMLDivElement | null>
@@ -24,6 +28,7 @@ function MarginHandle({ side, cardRef, visible }: HandleProps) {
   const startPx = useRef(0)
   const startMargin = useRef(0)
   const [isDragging, setIsDragging] = useState(false)
+  const [hovered, setHovered] = useState(false)
 
   const isHoriz = side === 'left' || side === 'right'
 
@@ -56,77 +61,270 @@ function MarginHandle({ side, cardRef, visible }: HandleProps) {
   const card = cardRef.current
   if (!card) return null
 
-  // Absolute positions relative to the bg container (card's offsetTop/offsetLeft)
   const ct = card.offsetTop
   const cl = card.offsetLeft
   const cw = card.offsetWidth
   const ch = card.offsetHeight
 
-  const HIT = 28
-  const TRACK = 1
+  const active = isDragging || hovered
+  const lineColor = active ? ACTIVE_COLOR : LINE_COLOR
+  const labelColor = active ? ACTIVE_COLOR : LABEL_COLOR
 
-  const baseStyle: React.CSSProperties = {
-    position: 'absolute',
-    zIndex: 40,
-    cursor: isHoriz ? 'ew-resize' : 'ns-resize',
-    opacity: isDragging ? 1 : show ? 0.55 : 0,
-    transition: 'opacity 200ms',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    pointerEvents: show ? 'auto' : 'none',
+  const HIT = 32 // draggable hit area width
+
+  if (side === 'left') {
+    const x = cl + margin
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: x - HIT / 2,
+          width: HIT,
+          height: ct + ch,
+          cursor: 'ew-resize',
+          opacity: show ? 1 : 0,
+          transition: 'opacity 180ms',
+          pointerEvents: show ? 'auto' : 'none',
+          zIndex: 40,
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onMouseDown={onMouseDown}
+      >
+        {/* Label + triangle in bg area above paper */}
+        <div style={{
+          position: 'absolute',
+          top: ct - 36,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 2,
+          pointerEvents: 'none',
+        }}>
+          <span style={{
+            fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+            fontSize: 11,
+            fontWeight: 500,
+            color: labelColor,
+            letterSpacing: '0.02em',
+            transition: 'color 150ms',
+            userSelect: 'none',
+          }}>{margin}</span>
+          {/* downward triangle */}
+          <div style={{
+            width: 0,
+            height: 0,
+            borderLeft: '5px solid transparent',
+            borderRight: '5px solid transparent',
+            borderTop: `6px solid ${labelColor}`,
+            transition: 'border-top-color 150ms',
+          }} />
+        </div>
+        {/* Dotted line through paper only */}
+        <div style={{
+          position: 'absolute',
+          top: ct,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 1,
+          height: ch,
+          backgroundImage: `repeating-linear-gradient(to bottom, ${lineColor} 0px, ${lineColor} 4px, transparent 4px, transparent 8px)`,
+          pointerEvents: 'none',
+        }} />
+      </div>
+    )
   }
 
-  const lineStyle: React.CSSProperties = {
-    background: isDragging ? '#5b8dd9' : 'rgba(0,0,0,0.3)',
-    borderRadius: 2,
-    transition: 'background 150ms',
-    pointerEvents: 'none',
-  }
-
-  const labelStyle: React.CSSProperties = {
-    position: 'absolute',
-    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-    fontSize: 10,
-    fontWeight: 500,
-    color: '#5b8dd9',
-    whiteSpace: 'nowrap',
-    pointerEvents: 'none',
-    userSelect: 'none',
-    background: 'rgba(255,255,255,0.92)',
-    padding: '2px 5px',
-    borderRadius: 4,
+  if (side === 'right') {
+    const x = cl + cw - margin
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: x - HIT / 2,
+          width: HIT,
+          height: ct + ch,
+          cursor: 'ew-resize',
+          opacity: show ? 1 : 0,
+          transition: 'opacity 180ms',
+          pointerEvents: show ? 'auto' : 'none',
+          zIndex: 40,
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onMouseDown={onMouseDown}
+      >
+        <div style={{
+          position: 'absolute',
+          top: ct - 36,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 2,
+          pointerEvents: 'none',
+        }}>
+          <span style={{
+            fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+            fontSize: 11,
+            fontWeight: 500,
+            color: labelColor,
+            letterSpacing: '0.02em',
+            transition: 'color 150ms',
+            userSelect: 'none',
+          }}>{margin}</span>
+          <div style={{
+            width: 0,
+            height: 0,
+            borderLeft: '5px solid transparent',
+            borderRight: '5px solid transparent',
+            borderTop: `6px solid ${labelColor}`,
+            transition: 'border-top-color 150ms',
+          }} />
+        </div>
+        <div style={{
+          position: 'absolute',
+          top: ct,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 1,
+          height: ch,
+          backgroundImage: `repeating-linear-gradient(to bottom, ${lineColor} 0px, ${lineColor} 4px, transparent 4px, transparent 8px)`,
+          pointerEvents: 'none',
+        }} />
+      </div>
+    )
   }
 
   if (side === 'top') {
+    const y = ct + margin
     return (
-      <div onMouseDown={onMouseDown} style={{ ...baseStyle, top: ct + margin - HIT / 2, left: cl, width: cw, height: HIT, flexDirection: 'row' }}>
-        <div style={{ ...lineStyle, height: TRACK, width: '100%' }} />
-        {isDragging && <span style={{ ...labelStyle, top: HIT / 2 + 4, left: '50%', transform: 'translateX(-50%)' }}>{margin}px</span>}
+      <div
+        style={{
+          position: 'absolute',
+          top: y - HIT / 2,
+          left: cl,
+          width: cw,
+          height: HIT,
+          cursor: 'ns-resize',
+          opacity: show ? 1 : 0,
+          transition: 'opacity 180ms',
+          pointerEvents: show ? 'auto' : 'none',
+          zIndex: 40,
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onMouseDown={onMouseDown}
+      >
+        {/* Label + triangle to the left of paper */}
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: -48,
+          transform: 'translateY(-50%)',
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 3,
+          pointerEvents: 'none',
+        }}>
+          <span style={{
+            fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+            fontSize: 11,
+            fontWeight: 500,
+            color: labelColor,
+            letterSpacing: '0.02em',
+            transition: 'color 150ms',
+            userSelect: 'none',
+          }}>{margin}</span>
+          {/* rightward triangle */}
+          <div style={{
+            width: 0,
+            height: 0,
+            borderTop: '5px solid transparent',
+            borderBottom: '5px solid transparent',
+            borderLeft: `6px solid ${labelColor}`,
+            transition: 'border-left-color 150ms',
+          }} />
+        </div>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: 0,
+          transform: 'translateY(-50%)',
+          width: cw,
+          height: 1,
+          backgroundImage: `repeating-linear-gradient(to right, ${lineColor} 0px, ${lineColor} 4px, transparent 4px, transparent 8px)`,
+          pointerEvents: 'none',
+        }} />
       </div>
     )
   }
-  if (side === 'bottom') {
-    return (
-      <div onMouseDown={onMouseDown} style={{ ...baseStyle, top: ct + ch - margin - HIT / 2, left: cl, width: cw, height: HIT, flexDirection: 'row' }}>
-        <div style={{ ...lineStyle, height: TRACK, width: '100%' }} />
-        {isDragging && <span style={{ ...labelStyle, top: HIT / 2 + 4, left: '50%', transform: 'translateX(-50%)' }}>{margin}px</span>}
-      </div>
-    )
-  }
-  if (side === 'left') {
-    return (
-      <div onMouseDown={onMouseDown} style={{ ...baseStyle, top: ct, left: cl + margin - HIT / 2, width: HIT, height: ch, flexDirection: 'column' }}>
-        <div style={{ ...lineStyle, width: TRACK, height: '100%' }} />
-        {isDragging && <span style={{ ...labelStyle, left: HIT / 2 + 4, top: '50%', transform: 'translateY(-50%)' }}>{margin}px</span>}
-      </div>
-    )
-  }
-  // right
+
+  // bottom
+  const y = ct + ch - margin
   return (
-    <div onMouseDown={onMouseDown} style={{ ...baseStyle, top: ct, left: cl + cw - margin - HIT / 2, width: HIT, height: ch, flexDirection: 'column' }}>
-      <div style={{ ...lineStyle, width: TRACK, height: '100%' }} />
-      {isDragging && <span style={{ ...labelStyle, left: HIT / 2 + 4, top: '50%', transform: 'translateY(-50%)' }}>{margin}px</span>}
+    <div
+      style={{
+        position: 'absolute',
+        top: y - HIT / 2,
+        left: cl,
+        width: cw,
+        height: HIT,
+        cursor: 'ns-resize',
+        opacity: show ? 1 : 0,
+        transition: 'opacity 180ms',
+        pointerEvents: show ? 'auto' : 'none',
+        zIndex: 40,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onMouseDown={onMouseDown}
+    >
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: -48,
+        transform: 'translateY(-50%)',
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        pointerEvents: 'none',
+      }}>
+        <span style={{
+          fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+          fontSize: 11,
+          fontWeight: 500,
+          color: labelColor,
+          letterSpacing: '0.02em',
+          transition: 'color 150ms',
+          userSelect: 'none',
+        }}>{margin}</span>
+        <div style={{
+          width: 0,
+          height: 0,
+          borderTop: '5px solid transparent',
+          borderBottom: '5px solid transparent',
+          borderLeft: `6px solid ${labelColor}`,
+          transition: 'border-left-color 150ms',
+        }} />
+      </div>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: 0,
+        transform: 'translateY(-50%)',
+        width: cw,
+        height: 1,
+        backgroundImage: `repeating-linear-gradient(to right, ${lineColor} 0px, ${lineColor} 4px, transparent 4px, transparent 8px)`,
+        pointerEvents: 'none',
+      }} />
     </div>
   )
 }
