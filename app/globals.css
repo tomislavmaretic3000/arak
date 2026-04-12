@@ -109,6 +109,14 @@ body {
   animation: contentEnter 220ms ease-out both;
 }
 
+/* ── Highlight ── */
+.tiptap mark {
+  background: var(--subtle);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
 /* ── TipTap / Format mode styles ── */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

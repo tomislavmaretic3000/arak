@@ -13,6 +13,7 @@ import { Placeholder } from '@tiptap/extension-placeholder'
 import { Typography } from '@tiptap/extension-typography'
 import { Underline } from '@tiptap/extension-underline'
 import { TextAlign } from '@tiptap/extension-text-align'
+import { Highlight } from '@tiptap/extension-highlight'
 import { Extension, type Range } from '@tiptap/core'
 import type { Editor } from '@tiptap/react'
 import Suggestion, {
@@ -256,6 +257,7 @@ export function FormatEditor() {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ horizontalRule: false }),
+      Highlight,
       Divider,
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'arak-link' } }),
       Image,

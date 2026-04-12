@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import type { Editor } from '@tiptap/react'
 import {
-  Bold, Italic,
+  Bold, Italic, Highlighter,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Heading, Heading1, Heading2, Heading3,
   List, ListOrdered,
@@ -78,9 +78,10 @@ export function FormatToolbar({ editor }: { editor: Editor }) {
           gap: 2, background: '#1a1a18', borderRadius: 100, padding: '4px',
         }}
       >
-        <Btn icon={<Bold {...ICON}/>}   title="Bold"   onClick={() => editor.chain().focus().toggleBold().run()}   active={editor.isActive('bold')} />
-        <Btn icon={<Italic {...ICON}/>} title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')} />
-        <Btn icon={<Quote {...ICON}/>}  title="Quote"  onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} />
+        <Btn icon={<Bold {...ICON}/>}        title="Bold"      onClick={() => editor.chain().focus().toggleBold().run()}      active={editor.isActive('bold')} />
+        <Btn icon={<Italic {...ICON}/>}      title="Italic"    onClick={() => editor.chain().focus().toggleItalic().run()}    active={editor.isActive('italic')} />
+        <Btn icon={<Highlighter {...ICON}/>} title="Highlight" onClick={() => editor.chain().focus().toggleHighlight().run()} active={editor.isActive('highlight')} />
+        <Btn icon={<Quote {...ICON}/>}       title="Quote"     onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} />
         <Btn icon={<Link {...ICON}/>}   title="Link"   onClick={() => {
           const url = window.prompt('URL', editor.getAttributes('link').href ?? '')
           if (url === null) return
