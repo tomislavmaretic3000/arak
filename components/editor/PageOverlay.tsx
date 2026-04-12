@@ -35,23 +35,5 @@ export function PageOverlay({ cardRef, paperFormat }: Props) {
   const cl = card.offsetLeft
   const cw = card.offsetWidth
 
-  return (
-    <>
-      {Array.from({ length: numPages - 1 }, (_, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            top: ct + (i + 1) * pageHeight,
-            left: cl - 24,
-            width: cw + 48,
-            height: 1,
-            background: 'rgba(0,0,0,0.1)',
-            pointerEvents: 'none',
-            zIndex: 20,
-          }}
-        />
-      ))}
-    </>
-  )
+  return null
 }
