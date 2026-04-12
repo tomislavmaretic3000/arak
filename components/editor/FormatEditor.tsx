@@ -103,7 +103,7 @@ interface SlashHandlers {
 export function FormatEditor() {
   const { content, title, setContent, setTitle, markSaved, markDirty,
     marginTop, marginRight, marginBottom, marginLeft,
-    paperFormat, showHeader, showFooter, showPageNumbers, pageNumberPos } = useFormatStore()
+    paperFormat } = useFormatStore()
   const font = useEditorStore((s) => s.font)
   const fontSize = useEditorStore((s) => s.fontSize)
   const { docs, activeFormatId, createDoc, updateDoc } = useDocumentsStore()
@@ -376,7 +376,7 @@ export function FormatEditor() {
         ref={cardRef}
         className={`format-page-card paper-${paperFormat}`}
         style={{
-          padding: `${Math.max(marginTop, showHeader ? 48 : 0)}px ${marginRight}px ${Math.max(marginBottom, showFooter ? 48 : 0)}px ${marginLeft}px`,
+          padding: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px`,
         }}
         onMouseEnter={() => setBgHovered(false)}
         onMouseLeave={() => setBgHovered(true)}
@@ -394,14 +394,7 @@ export function FormatEditor() {
       <MarginEditor cardRef={cardRef} visible={bgHovered} />
 
       {/* ── Page numbers / header / footer ── */}
-      <PageOverlay
-        cardRef={cardRef}
-        paperFormat={paperFormat}
-        showHeader={showHeader}
-        showFooter={showFooter}
-        showPageNumbers={showPageNumbers}
-        pageNumberPos={pageNumberPos}
-      />
+      <PageOverlay cardRef={cardRef} paperFormat={paperFormat} />
 
       {/* ── Slash command menu ── */}
       {slashMenu && slashMenu.items.length > 0 && (() => {
