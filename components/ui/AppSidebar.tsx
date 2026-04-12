@@ -141,6 +141,19 @@ export function AppSidebar() {
     closeMenu()
   }, [isWrite, writeContent, writeTitle, formatContent, formatTitle, router, closeMenu])
 
+  const handlePrint = useCallback(() => {
+    // Inject @page size rule matching the selected paper format
+    const size = paperFormat === 'letter' ? '8.5in 11in' : paperFormat === 'a4' ? 'A4' : 'auto'
+    const style = document.createElement('style')
+    style.id = 'arak-print-page'
+    style.textContent = `@page { size: ${size}; margin: 0; }`
+    document.head.appendChild(style)
+    window.print()
+    // Clean up after print dialog closes
+    setTimeout(() => { style.remove() }, 1000)
+    closeMenu()
+  }, [paperFormat, closeMenu])
+
   const handleSaveDevice = useCallback(async () => {
     const title = isWrite ? writeTitle : formatTitle
     const content = isWrite ? writeContent : getPreview(formatContent)
@@ -257,6 +270,7 @@ export function AppSidebar() {
                 </>
               )}
               <MenuItem onClick={handleFormat}>{isWrite ? 'Format' : 'Write'}</MenuItem>
+              {!isWrite && <MenuItem onClick={handlePrint}>Print / PDF</MenuItem>}
             </div>
             <div style={{ borderTop: '1px solid var(--subtle)', paddingTop: '2em', display: 'flex', flexDirection: 'column', gap: '0.1em' }}>
               <MenuItem onClick={() => setLevel('settings')}>Settings</MenuItem>
