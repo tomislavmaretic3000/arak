@@ -9,11 +9,13 @@ const LABEL_COLOR  = 'rgba(0,0,0,0.32)'
 const LINE_COLOR   = 'rgba(0,0,0,0.15)'
 const ACTIVE_COLOR = 'rgba(0,0,0,0.5)'
 const MONO = 'var(--font-noto-mono)'
-const DASH = 'repeating-linear-gradient(to bottom, {c} 0px, {c} 3px, transparent 3px, transparent 9px)'
-const DASHH = 'repeating-linear-gradient(to right, {c} 0px, {c} 3px, transparent 3px, transparent 9px)'
 
-function dashV(color: string) { return DASH.replaceAll('{c}', color) }
-function dashH(color: string) { return DASHH.replaceAll('{c}', color) }
+function dashV(color: string) {
+  return `repeating-linear-gradient(to bottom, ${color} 0px, ${color} 3px, transparent 3px, transparent 9px)`
+}
+function dashH(color: string) {
+  return `repeating-linear-gradient(to right, ${color} 0px, ${color} 3px, transparent 3px, transparent 9px)`
+}
 
 function Label({ value, color }: { value: number; color: string }) {
   return (
@@ -30,9 +32,6 @@ function TriangleRight({ color }: { color: string }) {
 }
 function TriangleLeft({ color }: { color: string }) {
   return <div style={{ width: 0, height: 0, borderTop: '5px solid transparent', borderBottom: '5px solid transparent', borderRight: `6px solid ${color}`, transition: 'border-right-color 150ms' }} />
-}
-function TriangleUp({ color }: { color: string }) {
-  return <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderBottom: `6px solid ${color}`, transition: 'border-bottom-color 150ms' }} />
 }
 
 interface HandleProps {
@@ -55,15 +54,8 @@ function MarginHandle({ side, cardRef, visible }: HandleProps) {
   const startMargin = useRef(0)
   const [isDragging, setIsDragging] = useState(false)
   const [hovered, setHovered] = useState(false)
-  // Mouse position relative to the handle element
-  const [mouseOffset, setMouseOffset] = useState(0)
 
   const isHoriz = side === 'left' || side === 'right'
-
-  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    setMouseOffset(isHoriz ? e.clientY - rect.top : e.clientX - rect.left)
-  }, [isHoriz])
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -104,77 +96,36 @@ function MarginHandle({ side, cardRef, visible }: HandleProps) {
   const lineColor  = active ? ACTIVE_COLOR : LINE_COLOR
   const labelColor = active ? ACTIVE_COLOR : LABEL_COLOR
   const HIT = 32
-  const LABEL_GAP = 10 // px gap between label and the handle line
+
+  const common: React.HTMLAttributes<HTMLDivElement> = {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+    onMouseDown,
+  }
 
   if (side === 'left') {
-    const x = cl + margin
-    const handleHeight = ct + ch
-    // Clamp label so it stays within the handle bounds with some padding
-    const labelY = Math.min(Math.max(mouseOffset, 28), handleHeight - 10)
-    // If mouse is in upper half of paper area → label above cursor (triangle below)
-    // If mouse is in lower half → label below cursor (triangle above)
-    const inLowerHalf = mouseOffset > handleHeight / 2
     return (
-      <div
-        style={{ position: 'absolute', top: 0, left: x - HIT / 2, width: HIT, height: handleHeight, cursor: 'ew-resize', opacity: show ? 1 : 0, transition: 'opacity 180ms', pointerEvents: show ? 'auto' : 'none', zIndex: 40 }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onMouseMove={onMouseMove}
-        onMouseDown={onMouseDown}
-      >
+      <div style={{ position: 'absolute', top: 0, left: cl + margin - HIT / 2, width: HIT, height: ct + ch, cursor: 'ew-resize', opacity: show ? 1 : 0, transition: 'opacity 180ms', pointerEvents: show ? 'auto' : 'none', zIndex: 40 }} {...common}>
+        {/* Label above paper, centered on line */}
         {showLabel && (
-          <div style={{
-            position: 'absolute',
-            top: labelY,
-            left: '50%',
-            transform: inLowerHalf ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
-            display: 'flex',
-            flexDirection: inLowerHalf ? 'column' : 'column-reverse',
-            alignItems: 'center',
-            gap: 2,
-            pointerEvents: 'none',
-            marginTop: inLowerHalf ? 0 : LABEL_GAP,
-            marginBottom: inLowerHalf ? LABEL_GAP : 0,
-          }}>
-            {inLowerHalf ? <TriangleUp color={labelColor} /> : <TriangleDown color={labelColor} />}
+          <div style={{ position: 'absolute', top: ct - 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none' }}>
             <Label value={margin} color={labelColor} />
+            <TriangleDown color={labelColor} />
           </div>
         )}
-        {/* Dotted line through paper only */}
         <div style={{ position: 'absolute', top: ct, left: '50%', transform: 'translateX(-50%)', width: 1, height: ch, backgroundImage: dashV(lineColor), pointerEvents: 'none' }} />
       </div>
     )
   }
 
   if (side === 'right') {
-    const x = cl + cw - margin
-    const handleHeight = ct + ch
-    const labelY = Math.min(Math.max(mouseOffset, 28), handleHeight - 10)
-    const inLowerHalf = mouseOffset > handleHeight / 2
     return (
-      <div
-        style={{ position: 'absolute', top: 0, left: x - HIT / 2, width: HIT, height: handleHeight, cursor: 'ew-resize', opacity: show ? 1 : 0, transition: 'opacity 180ms', pointerEvents: show ? 'auto' : 'none', zIndex: 40 }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onMouseMove={onMouseMove}
-        onMouseDown={onMouseDown}
-      >
+      <div style={{ position: 'absolute', top: 0, left: cl + cw - margin - HIT / 2, width: HIT, height: ct + ch, cursor: 'ew-resize', opacity: show ? 1 : 0, transition: 'opacity 180ms', pointerEvents: show ? 'auto' : 'none', zIndex: 40 }} {...common}>
+        {/* Label above paper, centered on line */}
         {showLabel && (
-          <div style={{
-            position: 'absolute',
-            top: labelY,
-            left: '50%',
-            transform: inLowerHalf ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
-            display: 'flex',
-            flexDirection: inLowerHalf ? 'column' : 'column-reverse',
-            alignItems: 'center',
-            gap: 2,
-            pointerEvents: 'none',
-            marginTop: inLowerHalf ? 0 : LABEL_GAP,
-            marginBottom: inLowerHalf ? LABEL_GAP : 0,
-          }}>
-            {inLowerHalf ? <TriangleUp color={labelColor} /> : <TriangleDown color={labelColor} />}
+          <div style={{ position: 'absolute', top: ct - 36, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none' }}>
             <Label value={margin} color={labelColor} />
+            <TriangleDown color={labelColor} />
           </div>
         )}
         <div style={{ position: 'absolute', top: ct, left: '50%', transform: 'translateX(-50%)', width: 1, height: ch, backgroundImage: dashV(lineColor), pointerEvents: 'none' }} />
@@ -183,33 +134,13 @@ function MarginHandle({ side, cardRef, visible }: HandleProps) {
   }
 
   if (side === 'top') {
-    const y = ct + margin
-    const labelX = Math.min(Math.max(mouseOffset, 28), cw - 10)
-    const inRightHalf = mouseOffset > cw / 2
     return (
-      <div
-        style={{ position: 'absolute', top: y - HIT / 2, left: cl, width: cw, height: HIT, cursor: 'ns-resize', opacity: show ? 1 : 0, transition: 'opacity 180ms', pointerEvents: show ? 'auto' : 'none', zIndex: 40 }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onMouseMove={onMouseMove}
-        onMouseDown={onMouseDown}
-      >
+      <div style={{ position: 'absolute', top: ct + margin - HIT / 2, left: cl, width: cw, height: HIT, cursor: 'ns-resize', opacity: show ? 1 : 0, transition: 'opacity 180ms', pointerEvents: show ? 'auto' : 'none', zIndex: 40 }} {...common}>
+        {/* Label to the LEFT of paper */}
         {showLabel && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: labelX,
-            transform: inRightHalf ? 'translate(-100%, -50%)' : 'translate(0, -50%)',
-            display: 'flex',
-            flexDirection: inRightHalf ? 'row' : 'row-reverse',
-            alignItems: 'center',
-            gap: 3,
-            pointerEvents: 'none',
-            marginLeft: inRightHalf ? 0 : LABEL_GAP,
-            marginRight: inRightHalf ? LABEL_GAP : 0,
-          }}>
-            {inRightHalf ? <TriangleLeft color={labelColor} /> : <TriangleRight color={labelColor} />}
+          <div style={{ position: 'absolute', top: '50%', left: -52, transform: 'translateY(-50%)', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 3, pointerEvents: 'none' }}>
             <Label value={margin} color={labelColor} />
+            <TriangleRight color={labelColor} />
           </div>
         )}
         <div style={{ position: 'absolute', top: '50%', left: 0, transform: 'translateY(-50%)', width: cw, height: 1, backgroundImage: dashH(lineColor), pointerEvents: 'none' }} />
@@ -217,33 +148,12 @@ function MarginHandle({ side, cardRef, visible }: HandleProps) {
     )
   }
 
-  // bottom
-  const y = ct + ch - margin
-  const labelX = Math.min(Math.max(mouseOffset, 28), cw - 10)
-  const inRightHalf = mouseOffset > cw / 2
+  // bottom — label to the RIGHT of paper
   return (
-    <div
-      style={{ position: 'absolute', top: y - HIT / 2, left: cl, width: cw, height: HIT, cursor: 'ns-resize', opacity: show ? 1 : 0, transition: 'opacity 180ms', pointerEvents: show ? 'auto' : 'none', zIndex: 40 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onMouseMove={onMouseMove}
-      onMouseDown={onMouseDown}
-    >
+    <div style={{ position: 'absolute', top: ct + ch - margin - HIT / 2, left: cl, width: cw, height: HIT, cursor: 'ns-resize', opacity: show ? 1 : 0, transition: 'opacity 180ms', pointerEvents: show ? 'auto' : 'none', zIndex: 40 }} {...common}>
       {showLabel && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: labelX,
-          transform: inRightHalf ? 'translate(-100%, -50%)' : 'translate(0, -50%)',
-          display: 'flex',
-          flexDirection: inRightHalf ? 'row' : 'row-reverse',
-          alignItems: 'center',
-          gap: 3,
-          pointerEvents: 'none',
-          marginLeft: inRightHalf ? 0 : LABEL_GAP,
-          marginRight: inRightHalf ? LABEL_GAP : 0,
-        }}>
-          {inRightHalf ? <TriangleLeft color={labelColor} /> : <TriangleRight color={labelColor} />}
+        <div style={{ position: 'absolute', top: '50%', left: cw + 8, transform: 'translateY(-50%)', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 3, pointerEvents: 'none' }}>
+          <TriangleLeft color={labelColor} />
           <Label value={margin} color={labelColor} />
         </div>
       )}
