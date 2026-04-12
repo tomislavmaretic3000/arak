@@ -221,8 +221,8 @@ body {
 }
 
 /* Paper format variants */
-.format-page-card.paper-a4     { width: 794px; max-width: 100%; }
-.format-page-card.paper-letter { width: 816px; max-width: 100%; }
+.format-page-card.paper-a4     { width: 794px; max-width: 100%; min-height: 1123px; }
+.format-page-card.paper-letter { width: 816px; max-width: 100%; min-height: 1056px; }
 .format-page-card.paper-none   { width: 100%; max-width: 960px; min-height: 1123px; }
 
 /* Page separator lines via CSS — no JS required */
