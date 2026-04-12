@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useFormatStore, PAPER_SIZES, type PaperFormat, type PageNumberPos } from '@/store/format'
 
 const MONO = 'var(--font-noto-mono)'
@@ -75,6 +75,23 @@ export function PageOverlay({ cardRef, paperFormat, showHeader, showFooter, show
 
   return (
     <>
+      {/* Page separator lines between pages (skip after last page) */}
+      {pages.slice(0, -1).map((i) => (
+        <div
+          key={`sep-${i}`}
+          style={{
+            position: 'absolute',
+            top: ct + (i + 1) * pageHeight,
+            left: cl,
+            width: cw,
+            height: 1,
+            background: 'rgba(0,0,0,0.08)',
+            pointerEvents: 'none',
+            zIndex: 20,
+          }}
+        />
+      ))}
+
       {pages.map((i) => {
         const pageTop = ct + i * pageHeight
         const pageBottom = ct + (i + 1) * pageHeight

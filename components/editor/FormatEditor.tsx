@@ -374,10 +374,9 @@ export function FormatEditor() {
       {/* ── Page card ── */}
       <div
         ref={cardRef}
-        className={`format-page-card paper-${paperFormat}${paperFormat !== 'none' ? ' has-pages' : ''}`}
+        className={`format-page-card paper-${paperFormat}`}
         style={{
           padding: `${Math.max(marginTop, showHeader ? 48 : 0)}px ${marginRight}px ${Math.max(marginBottom, showFooter ? 48 : 0)}px ${marginLeft}px`,
-          ...(paperFormat !== 'none' && { '--page-height': `${PAPER_SIZES[paperFormat].height}px` } as React.CSSProperties),
         }}
         onMouseEnter={() => setBgHovered(false)}
         onMouseLeave={() => setBgHovered(true)}
