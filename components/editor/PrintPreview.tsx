@@ -23,8 +23,15 @@ function buildPrintDoc(
 ): string {
   const fontFamily =
     font === 'serif' ? "'Noto Serif', Georgia, serif"
-    : font === 'mono' ? "'Noto Sans Mono', monospace"
+    : font === 'mono' ? "'Noto Sans Mono', 'Courier New', monospace"
     : "'Noto Sans', Helvetica, Arial, sans-serif"
+
+  const googleFont =
+    font === 'serif'
+      ? 'Noto+Serif:ital,wght@0,300;0,400;0,500;1,400'
+      : font === 'mono'
+      ? 'Noto+Sans+Mono:wght@300;400'
+      : 'Noto+Sans:ital,wght@0,300;0,400;0,500;1,400'
 
   const pageSize = paperFormat === 'letter' ? '8.5in 11in' : 'A4'
 
@@ -32,20 +39,24 @@ function buildPrintDoc(
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>${title}</title>
+<title>${title.replace(/</g, '&lt;')}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=${googleFont}&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,300;0,400;0,500;1,400&family=Noto+Serif:ital,wght@0,300;0,400;0,500;1,400&family=Noto+Sans+Mono:wght@300;400&display=swap');
-
   @page {
     size: ${pageSize};
     margin: ${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px;
   }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; }
 
-  html, body {
-    width: 100%;
+  html {
     background: white;
+  }
+
+  body {
+    margin: ${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px;
     color: #1a1a18;
     font-family: ${fontFamily};
     font-size: ${fontSize};
@@ -57,7 +68,7 @@ function buildPrintDoc(
 
   /* ── TipTap content ── */
   p          { margin: 0 0 1em; orphans: 3; widows: 3; }
-  h1         { font-size: 2em;   font-weight: 500; margin: 1.4em 0 0.4em; line-height: 1.2; break-after: avoid; }
+  h1         { font-size: 2em;    font-weight: 500; margin: 1.4em 0 0.4em; line-height: 1.2;  break-after: avoid; }
   h2         { font-size: 1.45em; font-weight: 500; margin: 1.2em 0 0.35em; line-height: 1.25; break-after: avoid; }
   h3         { font-size: 1.15em; font-weight: 500; margin: 1em 0 0.3em;   line-height: 1.3;  break-after: avoid; }
   ul, ol     { padding-left: 1.5em; margin: 0 0 1em; }
@@ -73,7 +84,7 @@ function buildPrintDoc(
     break-inside: avoid;
   }
   code {
-    font-family: 'Noto Sans Mono', monospace;
+    font-family: 'Noto Sans Mono', 'Courier New', monospace;
     font-size: 0.85em;
     background: #f0f0ec;
     padding: 0.1em 0.3em;
@@ -98,6 +109,11 @@ function buildPrintDoc(
   th, td      { border: 1px solid #d4d4ce; padding: 0.5em 0.75em; text-align: left; }
   th          { background: #f0f0ec; font-weight: 500; }
 
+  /* Text alignment classes from TipTap */
+  .tiptap, [data-text-align="center"], p[style*="text-align: center"] { text-align: center; }
+  [style*="text-align: right"]   { text-align: right; }
+  [style*="text-align: justify"] { text-align: justify; }
+
   /* Page break node → actual print page break */
   [data-page-break] {
     break-before: page;
@@ -106,10 +122,10 @@ function buildPrintDoc(
     display: block;
   }
 
-  /* Text alignment */
-  [style*="text-align: center"] { text-align: center; }
-  [style*="text-align: right"]  { text-align: right;  }
-  [style*="text-align: justify"]{ text-align: justify;}
+  /* Print: strip body margin (already set via @page) */
+  @media print {
+    body { margin: 0; }
+  }
 </style>
 </head>
 <body>${html}</body>
@@ -132,9 +148,8 @@ export function PrintPreview({ editor, onClose }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [loaded, setLoaded] = useState(false)
 
-  // Paper dimensions in px (96dpi)
   const paperSize = paperFormat !== 'none' ? PAPER_SIZES[paperFormat] : PAPER_SIZES.a4
-  const paperW = paperSize.width
+  const paperW = paperSize.width  // px at 96dpi
   const paperH = paperSize.height
 
   const buildDoc = useCallback(() => {
@@ -154,11 +169,25 @@ export function PrintPreview({ editor, onClose }: Props) {
     iframe.srcdoc = buildDoc()
   }, [buildDoc])
 
-  const handlePrint = () => {
-    iframeRef.current?.contentWindow?.print()
-  }
+  // Resize iframe to content height after fonts settle
+  const handleLoad = useCallback(() => {
+    setLoaded(true)
+    const iframe = iframeRef.current
+    if (!iframe?.contentDocument) return
+    const resize = () => {
+      const h = iframe.contentDocument!.documentElement.scrollHeight
+      if (h > 0) iframe.style.height = `${Math.max(paperH, h)}px`
+    }
+    resize()
+    // Re-measure after Google Fonts load
+    setTimeout(resize, 600)
+    setTimeout(resize, 1500)
+  }, [paperH])
 
-  // Keyboard: Escape closes, Cmd+P prints
+  const handlePrint = useCallback(() => {
+    iframeRef.current?.contentWindow?.print()
+  }, [])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { onClose(); return }
@@ -166,10 +195,9 @@ export function PrintPreview({ editor, onClose }: Props) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, handlePrint])
 
-  const CHROME_H = 64 // top bar height
-  const PADDING  = 48 // vertical padding around page
+  const CHROME_H = 56
 
   return (
     <div
@@ -177,7 +205,7 @@ export function PrintPreview({ editor, onClose }: Props) {
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        background: 'rgba(30,30,28,0.96)',
+        background: 'rgba(24,24,22,0.97)',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -189,117 +217,107 @@ export function PrintPreview({ editor, onClose }: Props) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 28px',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          padding: '0 24px',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
           flexShrink: 0,
         }}
       >
-        {/* Left: title + paper info */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-          <span style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Helvetica Neue', sans-serif", fontSize: 15, fontWeight: 500 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <span style={{ color: 'rgba(255,255,255,0.8)', fontFamily: "'Helvetica Neue', sans-serif", fontSize: 14, fontWeight: 500 }}>
             {title || 'untitled'}
           </span>
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Helvetica Neue', sans-serif", fontSize: 12 }}>
-            {paperFormat === 'letter' ? 'US Letter' : paperFormat === 'a4' ? 'A4' : 'Custom'} · {marginTop}/{marginRight}/{marginBottom}/{marginLeft}px margins
+          <span style={{ color: 'rgba(255,255,255,0.28)', fontFamily: "'Helvetica Neue', sans-serif", fontSize: 12 }}>
+            {paperFormat === 'letter' ? 'US Letter' : 'A4'} · {marginTop}/{marginRight}/{marginBottom}/{marginLeft}px
           </span>
         </div>
 
-        {/* Right: actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={onClose}
-            style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: 'none',
-              borderRadius: 8,
-              color: 'rgba(255,255,255,0.6)',
-              fontFamily: "'Helvetica Neue', sans-serif",
-              fontSize: 13,
-              padding: '7px 16px',
-              cursor: 'pointer',
-              transition: 'background 120ms',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.13)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            style={btnStyle(false)}
+            onMouseEnter={e => Object.assign((e.currentTarget as HTMLElement).style, btnHover)}
+            onMouseLeave={e => Object.assign((e.currentTarget as HTMLElement).style, btnStyle(false))}
           >
             Close
           </button>
           <button
             onClick={handlePrint}
-            style={{
-              background: 'rgba(255,255,255,0.9)',
-              border: 'none',
-              borderRadius: 8,
-              color: '#1a1a18',
-              fontFamily: "'Helvetica Neue', sans-serif",
-              fontSize: 13,
-              fontWeight: 500,
-              padding: '7px 20px',
-              cursor: 'pointer',
-              transition: 'background 120ms',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#fff')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.9)')}
+            style={btnStyle(true)}
+            onMouseEnter={e => Object.assign((e.currentTarget as HTMLElement).style, { background: '#fff' })}
+            onMouseLeave={e => Object.assign((e.currentTarget as HTMLElement).style, btnStyle(true))}
           >
             Print / Save PDF
           </button>
         </div>
       </div>
 
-      {/* ── Preview area ── */}
+      {/* ── Scrollable preview ── */}
       <div
         style={{
           flex: 1,
-          overflow: 'auto',
+          overflowY: 'auto',
           display: 'flex',
           justifyContent: 'center',
-          paddingTop: PADDING,
-          paddingBottom: PADDING,
+          padding: '40px 24px',
         }}
       >
-        {/* Shadow container — same width as paper, let height grow */}
         <div
           style={{
             width: paperW,
-            maxWidth: 'calc(100vw - 48px)',
-            boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+            maxWidth: '100%',
+            flexShrink: 0,
+            boxShadow: '0 4px 32px rgba(0,0,0,0.6)',
             background: 'white',
             position: 'relative',
-            flexShrink: 0,
+            minHeight: paperH,
           }}
         >
           {!loaded && (
             <div style={{
-              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'rgba(0,0,0,0.3)', fontFamily: "'Helvetica Neue', sans-serif", fontSize: 13,
+              position: 'absolute', inset: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'rgba(0,0,0,0.25)', fontFamily: "'Helvetica Neue', sans-serif", fontSize: 13,
             }}>
               Loading…
             </div>
           )}
           <iframe
             ref={iframeRef}
-            onLoad={() => setLoaded(true)}
+            onLoad={handleLoad}
             style={{
               display: 'block',
               width: '100%',
-              // Let the iframe grow to fit content — height set after load
               minHeight: paperH,
               border: 'none',
               opacity: loaded ? 1 : 0,
-              transition: 'opacity 200ms',
+              transition: 'opacity 250ms',
             }}
-            // After load, resize iframe to its content height
-            onLoadCapture={() => {
-              const iframe = iframeRef.current
-              if (!iframe?.contentDocument) return
-              const h = iframe.contentDocument.documentElement.scrollHeight
-              iframe.style.height = `${Math.max(paperH, h)}px`
-            }}
-            sandbox="allow-same-origin allow-modals"
             title="Print preview"
           />
         </div>
       </div>
     </div>
   )
+}
+
+// ── Button styles ─────────────────────────────────────────────────────────────
+
+const BASE_BTN: React.CSSProperties = {
+  border: 'none',
+  borderRadius: 7,
+  fontFamily: "'Helvetica Neue', sans-serif",
+  fontSize: 13,
+  cursor: 'pointer',
+  padding: '7px 16px',
+  transition: 'background 120ms',
+}
+
+function btnStyle(primary: boolean): React.CSSProperties {
+  return primary
+    ? { ...BASE_BTN, background: 'rgba(255,255,255,0.88)', color: '#1a1a18', fontWeight: 500 }
+    : { ...BASE_BTN, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.55)' }
+}
+
+const btnHover: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.13)',
 }
