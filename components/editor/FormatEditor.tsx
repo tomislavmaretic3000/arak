@@ -30,6 +30,7 @@ import { FormatToolbar } from './FormatToolbar'
 import { TableToolbar } from './TableToolbar'
 import { MarginEditor } from './MarginEditor'
 import { PageOverlay } from './PageOverlay'
+import { PrintPreview } from './PrintPreview'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
 // ── Slash menu icons ──────────────────────────────────────────────────────────
@@ -132,6 +133,7 @@ export function FormatEditor() {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const [bgHovered, setBgHovered] = useState(false)
+  const [showPrintPreview, setShowPrintPreview] = useState(false)
 
   const [slashMenu, setSlashMenu] = useState<SlashMenuState | null>(null)
   const slashMenuRef = useRef<SlashMenuState | null>(null)
@@ -360,10 +362,18 @@ export function FormatEditor() {
     return () => { if (idleTimer.current) clearTimeout(idleTimer.current) }
   }, [content, markSaved])
 
+  // Listen for sidebar print trigger
+  useEffect(() => {
+    const onPrint = () => setShowPrintPreview(true)
+    window.addEventListener('arak:print', onPrint)
+    return () => window.removeEventListener('arak:print', onPrint)
+  }, [])
+
   if (!editor) return null
   editorRef.current = editor
 
   return (
+    <>
     <div
       key={activeFormatId ?? 'format'}
       className="format-page-bg content-enter"
@@ -462,5 +472,9 @@ export function FormatEditor() {
         )
       })()}
     </div>
+    {showPrintPreview && (
+      <PrintPreview editor={editor} onClose={() => setShowPrintPreview(false)} />
+    )}
+    </>
   )
 }
