@@ -246,27 +246,19 @@ body {
 
 /* ── Print / PDF export ── */
 @media print {
-  /* Hide everything except the card */
-  body > *,
-  .format-page-bg > *:not(.format-page-card) {
-    display: none !important;
-  }
-
-  html, body {
+  /* Hide everything, then reveal only the card and its children */
+  body {
+    visibility: hidden;
     background: white !important;
     margin: 0 !important;
     padding: 0 !important;
-  }
-
-  .format-page-bg {
-    display: block !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: white !important;
   }
 
   .format-page-card {
-    display: block !important;
+    visibility: visible;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
     min-height: 0 !important;
@@ -274,6 +266,10 @@ body {
     box-shadow: none !important;
     border: none !important;
     background: white !important;
+  }
+
+  .format-page-card * {
+    visibility: visible;
   }
 
   /* Prevent content splitting mid-sentence where possible */
