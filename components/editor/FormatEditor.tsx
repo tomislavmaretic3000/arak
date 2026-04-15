@@ -305,46 +305,28 @@ export function FormatEditor() {
                 }
                 const text = view.state.doc.textContent
                 debouncedCheck.current(text, (matches) => {
-                  // Build per-block decorations with correct ProseMirror positions
+                  // Build flat-text-index → ProseMirror-position map
+                  const posMap: number[] = []
+                  view.state.doc.forEach((node, offset) => {
+                    if (!node.isTextblock) return
+                    const pmStart = offset + 1 // +1 skips the node's opening token
+                    for (let i = 0; i < node.textContent.length; i++) {
+                      posMap.push(pmStart + i)
+                    }
+                  })
+
                   const decos: Decoration[] = []
-                  // Build a flat text→PM position map
-                  let flatOffset = 0
-                  const segments: { pmStart: number; text: string }[] = []
-                  view.state.doc.forEach((node) => {
-                    if (node.isTextblock) {
-                      segments.push({ pmStart: flatOffset, text: node.textContent })
-                      flatOffset += node.textContent.length
-                    }
-                  })
-                  // Now map each match offset to a PM position
-                  let pmPos = 1
-                  view.state.doc.forEach((node) => {
-                    if (!node.isTextblock) { pmPos += node.nodeSize; return }
-                    const blockStart = pmPos + 1
-                    for (const m of matches) {
-                      const nodeText = node.textContent
-                      if (m.offset >= 0 && m.offset + m.length <= nodeText.length) {
-                        // Only if match falls within this block
-                        let cumulative = 0
-                        let blockOffset = 0
-                        view.state.doc.forEach((n, o) => {
-                          if (!n.isTextblock) return
-                          if (n === node) blockOffset = cumulative
-                          cumulative += n.textContent.length
-                        })
-                        if (m.offset >= blockOffset && m.offset + m.length <= blockOffset + nodeText.length) {
-                          const from = blockStart + (m.offset - blockOffset)
-                          const to = from + m.length
-                          decos.push(Decoration.inline(from, to, {
-                            class: `lt-${m.category}`,
-                            'data-lt-rule': m.ruleId,
-                            'data-lt-idx': String(matches.indexOf(m)),
-                          }))
-                        }
-                      }
-                    }
-                    pmPos += node.nodeSize
-                  })
+                  for (const m of matches) {
+                    const end = m.offset + m.length
+                    if (end > posMap.length || m.offset >= posMap.length) continue
+                    const from = posMap[m.offset]
+                    const to   = posMap[end - 1] + 1
+                    decos.push(Decoration.inline(from, to, {
+                      class: `lt-${m.category}`,
+                      'data-lt-rule': m.ruleId,
+                      'data-lt-idx': String(matches.indexOf(m)),
+                    }))
+                  }
                   const set = DecorationSet.create(view.state.doc, decos)
                   decorSetRef.current = set
                   const tr = view.state.tr.setMeta(key, set)
