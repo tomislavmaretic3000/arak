@@ -239,8 +239,34 @@ export function WriteEditor() {
 
   const minRead = Math.max(1, Math.round(wordCount / 238))
 
+  const grammarActive = grammarCheck && ltMatches.length > 0 && !!content
+
+  // Applies grammar underline spans to a slice of text. `segOffset` is where
+  // this slice starts in the flat content string (matches use flat offsets).
+  const grammarSpans = useCallback(
+    (text: string, segOffset: number): React.ReactNode => {
+      if (!grammarActive) return text
+      const hits = ltMatches
+        .filter((m) => m.offset < segOffset + text.length && m.offset + m.length > segOffset)
+        .sort((a, b) => a.offset - b.offset)
+      if (!hits.length) return text
+      const parts: React.ReactNode[] = []
+      let cur = 0
+      for (const m of hits) {
+        const s = Math.max(0, m.offset - segOffset)
+        const e = Math.min(text.length, m.offset + m.length - segOffset)
+        if (s > cur) parts.push(text.slice(cur, s))
+        parts.push(<span key={`g${m.offset}`} className={`lt-${m.category}`}>{text.slice(s, e)}</span>)
+        cur = e
+      }
+      if (cur < text.length) parts.push(text.slice(cur))
+      return <>{parts}</>
+    },
+    [grammarActive, ltMatches]
+  )
+
   const mirrorContent = useMemo(() => {
-    // Search mode: render with match highlights
+    // Search mode: match highlights (grammar not applied — search has precedence)
     if (searchOpen && matches.length > 0) {
       const parts: React.ReactNode[] = []
       let lastEnd = 0
@@ -270,9 +296,35 @@ export function WriteEditor() {
       return <>{parts}</>
     }
 
-    // Combined: focus dimming + POS coloring
-    if (focusMode && posHighlight && content) {
-      if (paragraphs.length === 0) return posHighlightContent(content)
+    // POS highlight (with optional grammar underlines embedded)
+    if (posHighlight && content) {
+      if (focusMode && paragraphs.length > 0) {
+        return (
+          <>
+            {paragraphs.map((seg, i) => {
+              const trailingNL = seg.text.endsWith('\n')
+              const lineText = trailingNL ? seg.text.slice(0, -1) : seg.text
+              return (
+                <span
+                  key={seg.start}
+                  style={{ opacity: i === currentParaIdx ? 1 : 0.3, transition: 'opacity 180ms ease-in-out' }}
+                >
+                  {lineText ? posHighlightContent(lineText) : null}
+                  {trailingNL ? '\n' : null}
+                </span>
+              )
+            })}
+          </>
+        )
+      }
+      return posHighlightContent(content)
+    }
+
+    // Focus mode: paragraph dimming with grammar underlines integrated
+    if (focusMode && content) {
+      if (paragraphs.length === 0) {
+        return <span>{grammarSpans(content, 0)}</span>
+      }
       return (
         <>
           {paragraphs.map((seg, i) => {
@@ -281,12 +333,9 @@ export function WriteEditor() {
             return (
               <span
                 key={seg.start}
-                style={{
-                  opacity: i === currentParaIdx ? 1 : 0.3,
-                  transition: 'opacity 180ms ease-in-out',
-                }}
+                style={{ opacity: i === currentParaIdx ? 1 : 0.3, transition: 'opacity 180ms ease-in-out' }}
               >
-                {lineText ? posHighlightContent(lineText) : null}
+                {lineText ? grammarSpans(lineText, seg.start) : null}
                 {trailingNL ? '\n' : null}
               </span>
             )
@@ -295,60 +344,19 @@ export function WriteEditor() {
       )
     }
 
-    // POS highlight only
-    if (posHighlight && content) {
-      return posHighlightContent(content)
-    }
-
-    // Focus mode only: paragraph dimming
-    if (focusMode) {
-      if (!content) return null
-      if (paragraphs.length === 0) return <span>{content}</span>
-      return (
-        <>
-          {paragraphs.map((seg, i) => (
-            <span
-              key={seg.start}
-              style={{
-                opacity: i === currentParaIdx ? 1 : 0.3,
-                transition: 'opacity 180ms ease-in-out',
-              }}
-            >
-              {seg.text}
-            </span>
-          ))}
-        </>
-      )
+    // Grammar only: show full text with underlines, no other effects
+    if (grammarActive) {
+      return <>{grammarSpans(content, 0)}</>
     }
 
     return null
   }, [
     searchOpen, matches, currentMatchIndex,
     posHighlight, focusMode, content, paragraphs, currentParaIdx,
+    grammarActive, grammarSpans,
   ])
 
-  // ── Grammar underline layer ───────────────────────────────────────────────
-  const grammarMirror = useMemo(() => {
-    if (!grammarCheck || ltMatches.length === 0 || !content) return null
-    const parts: React.ReactNode[] = []
-    let last = 0
-    // Sort matches by offset
-    const sorted = [...ltMatches].sort((a, b) => a.offset - b.offset)
-    for (const m of sorted) {
-      if (m.offset < last) continue
-      if (m.offset > last) parts.push(<span key={`t-${last}`}>{content.slice(last, m.offset)}</span>)
-      parts.push(
-        <span key={`m-${m.offset}`} className={`lt-${m.category}`}>
-          {content.slice(m.offset, m.offset + m.length)}
-        </span>
-      )
-      last = m.offset + m.length
-    }
-    if (last < content.length) parts.push(<span key={`t-${last}`}>{content.slice(last)}</span>)
-    return <>{parts}</>
-  }, [grammarCheck, ltMatches, content])
-
-  const showMirror = searchOpen || focusMode || posHighlight || (grammarCheck && ltMatches.length > 0)
+  const showMirror = !!(mirrorContent)
 
   return (
     <div
@@ -377,7 +385,7 @@ export function WriteEditor() {
           />
         )}
 
-        {/* Mirror layer */}
+        {/* Mirror — single layer handles all visual effects + grammar underlines */}
         {showMirror && (
           <div
             aria-hidden="true"
@@ -392,13 +400,11 @@ export function WriteEditor() {
               overflow: 'hidden',
             }}
           >
-            {/* Grammar underlines sit beneath other highlights */}
-            {grammarMirror && !mirrorContent && grammarMirror}
             {mirrorContent}
           </div>
         )}
 
-        {/* Textarea */}
+        {/* Textarea — transparent when mirror is active so mirror text shows */}
         <textarea
           ref={textareaRef}
           value={content}
@@ -420,6 +426,7 @@ export function WriteEditor() {
             outline: 'none',
             resize: 'none',
             overflow: 'hidden',
+            position: 'relative',
             color: showMirror ? 'transparent' : 'var(--fg)',
             caretColor: isEmpty ? 'transparent' : 'var(--fg)',
           }}

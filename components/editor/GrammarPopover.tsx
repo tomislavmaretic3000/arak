@@ -16,6 +16,19 @@ const CATEGORY_COLOR: Record<string, string> = {
   other:    'rgba(150,150,150,0.5)',
 }
 
+/** Rebuilds a flat-text-index → PM-position lookup array from the doc. */
+function buildPosMap(editor: Editor): number[] {
+  const posMap: number[] = []
+  editor.state.doc.forEach((node, offset) => {
+    if (!node.isTextblock) return
+    const pmStart = offset + 1
+    for (let i = 0; i < node.textContent.length; i++) {
+      posMap.push(pmStart + i)
+    }
+  })
+  return posMap
+}
+
 export function GrammarPopover({ editor, matches }: Props) {
   const [popover, setPopover] = useState<{
     match: LTMatch
@@ -24,24 +37,27 @@ export function GrammarPopover({ editor, matches }: Props) {
   } | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Listen for clicks on decorated spans
+  // Listen for clicks inside the editor; use posAtCoords to find which match was hit
   useEffect(() => {
     const dom = editor.view.dom as HTMLElement
 
     const onClick = (e: MouseEvent) => {
-      const target = (e.target as HTMLElement).closest('[data-lt-rule]') as HTMLElement | null
-      if (!target) { setPopover(null); return }
+      const result = editor.view.posAtCoords({ left: e.clientX, top: e.clientY })
+      if (!result) { setPopover(null); return }
 
-      const ruleId = target.getAttribute('data-lt-rule')
-      const match = matches.find((m) => m.ruleId === ruleId) ?? null
+      const posMap = buildPosMap(editor)
+
+      const match = matches.find((m) => {
+        const end = m.offset + m.length
+        if (m.offset >= posMap.length || end > posMap.length) return false
+        const from = posMap[m.offset]
+        const to   = posMap[end - 1] + 1
+        return result.pos >= from && result.pos < to
+      }) ?? null
+
       if (!match) { setPopover(null); return }
 
-      const rect = target.getBoundingClientRect()
-      setPopover({
-        match,
-        x: rect.left + rect.width / 2,
-        y: rect.bottom + 8,
-      })
+      setPopover({ match, x: e.clientX, y: e.clientY + 12 })
       e.stopPropagation()
     }
 
@@ -62,30 +78,21 @@ export function GrammarPopover({ editor, matches }: Props) {
   const applyReplacement = (replacement: string) => {
     if (!popover) return
     const { match } = popover
-    // Find the position in the doc using the match offset
-    let pos = 1
-    let found = false
-    editor.state.doc.forEach((node) => {
-      if (found) return
-      if (node.isTextblock) {
-        const start = pos + 1
-        const end = start + node.textContent.length
-        if (match.offset >= 0 && match.offset < node.textContent.length) {
-          const from = start + match.offset
-          const to = from + match.length
-          editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, replacement).run()
-          found = true
-        }
-      }
-      pos += node.nodeSize
-    })
+
+    const posMap = buildPosMap(editor)
+    const end = match.offset + match.length
+    if (match.offset >= posMap.length || end > posMap.length) { setPopover(null); return }
+
+    const from = posMap[match.offset]
+    const to   = posMap[end - 1] + 1
+    editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, replacement).run()
     setPopover(null)
   }
 
   if (!popover) return null
 
   const { match, x, y } = popover
-  const color = CATEGORY_COLOR[match.category]
+  const color = CATEGORY_COLOR[match.category] ?? CATEGORY_COLOR.other
 
   return (
     <div
@@ -113,19 +120,15 @@ export function GrammarPopover({ editor, matches }: Props) {
           background: color,
           marginTop: 5,
         }} />
-        <span style={{
-          fontSize: 13,
-          lineHeight: 1.4,
-          color: 'rgba(255,255,255,0.7)',
-        }}>
-          {match.shortMessage}
+        <span style={{ fontSize: 13, lineHeight: 1.4, color: 'rgba(255,255,255,0.7)' }}>
+          {match.shortMessage || match.message}
         </span>
       </div>
 
       {/* Replacement suggestions */}
       {match.replacements.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-          {match.replacements.map((r) => (
+          {match.replacements.slice(0, 6).map((r) => (
             <button
               key={r}
               onMouseDown={(e) => { e.preventDefault(); applyReplacement(r) }}
