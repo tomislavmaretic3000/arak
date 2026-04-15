@@ -1,18 +1,24 @@
 'use client'
 
-import { useRef, useCallback, useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEditor, EditorContent } from '@tiptap/react'
+import { StarterKit } from '@tiptap/starter-kit'
+import { Extension } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import type { EditorState } from '@tiptap/pm/state'
 import { useEditorStore, FONT_SIZE_MAP, SPACING_MAP } from '@/store/editor'
 import { useFilesStore } from '@/store/files'
 import { useSearchStore } from '@/store/search'
 import { useDocumentsStore } from '@/store/documents'
 import { useUIStore } from '@/store/ui'
-import { parseParagraphs, getCurrentSegmentIndex } from '@/lib/editor/sentences'
-import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
-import { AnimatedPlaceholder } from './AnimatedPlaceholder'
 import { createDebouncedChecker, type LTMatch } from '@/lib/editor/languageTool'
+import { GrammarPopover } from './GrammarPopover'
+import { AnimatedPlaceholder } from './AnimatedPlaceholder'
+import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 import nlp from 'compromise'
 
-// POS color map — subtle, readable on all themes
+// ── POS colors ────────────────────────────────────────────────────────────────
 const POS_COLORS: Record<string, string> = {
   Noun:      'var(--pos-noun)',
   Verb:      'var(--pos-verb)',
@@ -20,152 +26,356 @@ const POS_COLORS: Record<string, string> = {
   Adverb:    'var(--pos-adv)',
 }
 
-function posHighlightContent(text: string): React.ReactNode {
-  const parts: React.ReactNode[] = []
-  const lines = text.split('\n')
-  lines.forEach((line, li) => {
-    if (line.trim() === '') {
-      parts.push('\n')
-      return
-    }
-    const doc = nlp(line)
-    const terms = doc.json({ offset: true }) as Array<{ terms: Array<{ text: string; offset: { start: number; length: number }; tags: string[] }> }>
-    const tokens: Array<{ text: string; color?: string }> = []
-    let cursor = 0
-    terms.forEach((phrase) =>
-      phrase.terms.forEach((term) => {
-        const start = term.offset.start
-        if (start > cursor) tokens.push({ text: line.slice(cursor, start) })
-        const tag = (['Noun','Verb','Adjective','Adverb'] as const).find((t) => term.tags.includes(t))
-        tokens.push({ text: term.text, color: tag ? POS_COLORS[tag] : undefined })
-        cursor = start + term.offset.length
-      })
-    )
-    if (cursor < line.length) tokens.push({ text: line.slice(cursor) })
-    tokens.forEach((tok, ti) =>
-      parts.push(
-        tok.color
-          ? <span key={`${li}-${ti}`} style={{ color: tok.color }}>{tok.text}</span>
-          : <span key={`${li}-${ti}`}>{tok.text}</span>
-      )
-    )
-    if (li < lines.length - 1) parts.push('\n')
-  })
-  return <>{parts}</>
+// ── Content conversion ────────────────────────────────────────────────────────
+
+function plainTextToDoc(text: string) {
+  if (!text) return { type: 'doc', content: [{ type: 'paragraph' }] }
+  return {
+    type: 'doc',
+    content: text.split('\n').map((line) => ({
+      type: 'paragraph',
+      ...(line ? { content: [{ type: 'text', text: line }] } : {}),
+    })),
+  }
 }
 
+// ── Position maps ─────────────────────────────────────────────────────────────
+
+// Grammar posMap: doc.textContent index → PM position (no separator entries)
+function buildGrammarPosMap(state: EditorState): number[] {
+  const map: number[] = []
+  state.doc.forEach((node, offset) => {
+    if (!node.isTextblock) return
+    const start = offset + 1
+    for (let i = 0; i < node.textContent.length; i++) map.push(start + i)
+  })
+  return map
+}
+
+// Search posMap: getText({ blockSeparator: '\n' }) index → PM position
+// null entries represent the '\n' separator characters between blocks
+function buildSearchPosMap(state: EditorState): Array<number | null> {
+  const map: Array<number | null> = []
+  let first = true
+  state.doc.forEach((node, offset) => {
+    if (!node.isTextblock) return
+    if (!first) map.push(null) // the '\n' separator char
+    first = false
+    const start = offset + 1
+    for (let i = 0; i < node.textContent.length; i++) map.push(start + i)
+  })
+  return map
+}
+
+// ── WriteEditor ───────────────────────────────────────────────────────────────
+
 export function WriteEditor() {
-  const { content, focusMode: focusModeStore, posHighlight, showWordCount, grammarCheck, font, fontSize, spacing, setContent } =
-    useEditorStore()
-  const menuOpen = useUIStore((s) => s.menuOpen)
-  const focusMode = focusModeStore && !menuOpen
-  const { title, setTitle, markSaved } = useFilesStore()
-  const isEmpty = content.trim() === ''
   const {
-    isOpen: searchOpen,
-    matches,
-    currentMatchIndex,
-    open: openSearch,
-    goToNext,
-    goToPrev,
-  } = useSearchStore()
+    content, focusMode: focusModeStore, posHighlight, showWordCount,
+    grammarCheck, font, fontSize, spacing, setContent,
+  } = useEditorStore()
+  const menuOpen  = useUIStore((s) => s.menuOpen)
+  const focusMode = focusModeStore && !menuOpen
+  const { title, setTitle, markSaved }  = useFilesStore()
+  const { isOpen: searchOpen, matches, currentMatchIndex, open: openSearch, goToNext, goToPrev } = useSearchStore()
+  const { docs, activeWriteId, createDoc, updateDoc, setActiveWrite } = useDocumentsStore()
 
-  const { docs, activeWriteId, createDoc, updateDoc, setActiveWrite } =
-    useDocumentsStore()
+  // ── Refs so plugins never read stale values ───────────────────────────────
+  const focusModeRef    = useRef(focusMode)
+  const posHighlightRef = useRef(posHighlight)
+  const grammarCheckRef = useRef(grammarCheck)
+  useEffect(() => { focusModeRef.current    = focusMode    }, [focusMode])
+  useEffect(() => { posHighlightRef.current = posHighlight }, [posHighlight])
+  useEffect(() => { grammarCheckRef.current = grammarCheck }, [grammarCheck])
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [cursorPos, setCursorPos] = useState(0)
+  // ── Grammar state ─────────────────────────────────────────────────────────
   const [ltMatches, setLtMatches] = useState<LTMatch[]>([])
+  const ltMatchesRef   = useRef<LTMatch[]>([])
   const debouncedCheck = useRef(createDebouncedChecker(1800))
 
-  const fontFamily =
-    font === 'serif'
-      ? 'var(--font-noto-serif)'
-      : font === 'mono'
-      ? 'var(--font-noto-mono)'
-      : 'var(--font-noto-sans)'
+  // ── Stable plugin keys ────────────────────────────────────────────────────
+  const grammarKey = useMemo(() => new PluginKey<DecorationSet>('writeGrammar'), [])
+  const searchKey  = useMemo(() => new PluginKey<DecorationSet>('writeSearch'),  [])
+  const focusKey   = useMemo(() => new PluginKey('writeFocus'),   [])
+  const posKey     = useMemo(() => new PluginKey('writePos'),     [])
 
+  // ── Font / spacing ────────────────────────────────────────────────────────
+  const fontFamily =
+    font === 'serif' ? 'var(--font-noto-serif)'
+    : font === 'mono' ? 'var(--font-noto-mono)'
+    : 'var(--font-noto-sans)'
   const fontSizePx = FONT_SIZE_MAP[fontSize]
   const { lineHeight, letterSpacing, wordSpacing } = SPACING_MAP[spacing]
 
-  const textStyle: React.CSSProperties = {
-    fontSize: fontSizePx,
-    lineHeight,
-    letterSpacing,
-    wordSpacing,
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-    overflowWrap: 'break-word',
-    padding: 0,
-    margin: 0,
-  }
+  const editorStyle = useMemo(() => [
+    `font-family: ${fontFamily}`,
+    `font-size: ${fontSizePx}`,
+    `line-height: ${lineHeight}`,
+    `letter-spacing: ${letterSpacing}`,
+    `word-spacing: ${wordSpacing}`,
+    'outline: none',
+    'color: var(--fg)',
+  ].join(';'), [fontFamily, fontSizePx, lineHeight, letterSpacing, wordSpacing])
 
-  // ── Bootstrap documents store on first mount ──────────────────────────────
+  // ── Extensions (created once) ─────────────────────────────────────────────
+  const extensions = useMemo(() => {
+    // Capture refs/keys by value — all are stable references
+    const _grammarKey     = grammarKey
+    const _searchKey      = searchKey
+    const _focusKey       = focusKey
+    const _posKey         = posKey
+    const _grammarCheckRef = grammarCheckRef
+    const _debouncedCheck  = debouncedCheck
+    const _ltMatchesRef    = ltMatchesRef
+    const _setLtMatches    = setLtMatches
+    const _focusModeRef    = focusModeRef
+    const _posHighlightRef = posHighlightRef
+
+    return [
+      StarterKit.configure({
+        heading: false, bulletList: false, orderedList: false,
+        blockquote: false, code: false, codeBlock: false, horizontalRule: false,
+      }),
+
+      // Tab → 2 spaces
+      Extension.create({
+        name: 'tabInsert',
+        addKeyboardShortcuts() {
+          return { Tab: () => { this.editor.commands.insertContent('  '); return true } }
+        },
+      }),
+
+      // ── Grammar underlines ───────────────────────────────────────────────
+      Extension.create({
+        name: 'writeGrammar',
+        addProseMirrorPlugins: () => [new Plugin({
+          key: _grammarKey,
+          state: {
+            init: () => DecorationSet.empty,
+            apply(tr, set) {
+              const next = tr.getMeta(_grammarKey)
+              if (next !== undefined) return next as DecorationSet
+              return set.map(tr.mapping, tr.doc)
+            },
+          },
+          props: { decorations: (s) => _grammarKey.getState(s) ?? DecorationSet.empty },
+          view(view) {
+            function run() {
+              if (!_grammarCheckRef.current) {
+                view.dispatch(view.state.tr.setMeta(_grammarKey, DecorationSet.empty))
+                _ltMatchesRef.current = []; _setLtMatches([]); return
+              }
+              _debouncedCheck.current(view.state.doc.textContent, (ms) => {
+                const posMap = buildGrammarPosMap(view.state)
+                const decos: Decoration[] = []
+                for (const m of ms) {
+                  const end = m.offset + m.length
+                  if (m.offset >= posMap.length || end > posMap.length) continue
+                  decos.push(Decoration.inline(posMap[m.offset], posMap[end - 1] + 1, { class: `lt-${m.category}` }))
+                }
+                view.dispatch(view.state.tr.setMeta(_grammarKey, DecorationSet.create(view.state.doc, decos)))
+                _ltMatchesRef.current = ms; _setLtMatches(ms)
+              })
+            }
+            run()
+            return { update(v, prev) { if (!v.state.doc.eq(prev.doc)) run() } }
+          },
+        })],
+      }),
+
+      // ── Search highlights ────────────────────────────────────────────────
+      Extension.create({
+        name: 'writeSearch',
+        addProseMirrorPlugins: () => [new Plugin({
+          key: _searchKey,
+          state: {
+            init: () => DecorationSet.empty,
+            apply(tr, set) {
+              const next = tr.getMeta(_searchKey)
+              if (next !== undefined) return next as DecorationSet
+              return set.map(tr.mapping, tr.doc)
+            },
+          },
+          props: { decorations: (s) => _searchKey.getState(s) ?? DecorationSet.empty },
+        })],
+      }),
+
+      // ── Focus mode: dim non-active paragraphs ────────────────────────────
+      Extension.create({
+        name: 'writeFocus',
+        addProseMirrorPlugins: () => [new Plugin({
+          key: _focusKey,
+          props: {
+            decorations(state) {
+              if (!_focusModeRef.current) return DecorationSet.empty
+              const { from } = state.selection
+              const decos: Decoration[] = []
+              state.doc.forEach((node, offset) => {
+                if (!node.isBlock) return
+                const active = from > offset && from < offset + node.nodeSize
+                if (!active) decos.push(Decoration.node(offset, offset + node.nodeSize, {
+                  style: 'opacity: 0.3; transition: opacity 180ms ease-in-out;',
+                }))
+              })
+              return DecorationSet.create(state.doc, decos)
+            },
+          },
+        })],
+      }),
+
+      // ── POS highlighting ─────────────────────────────────────────────────
+      Extension.create({
+        name: 'writePosHighlight',
+        addProseMirrorPlugins: () => [new Plugin({
+          key: _posKey,
+          props: {
+            decorations(state) {
+              if (!_posHighlightRef.current) return DecorationSet.empty
+              const decos: Decoration[] = []
+              state.doc.forEach((node, offset) => {
+                if (!node.isTextblock || !node.textContent) return
+                const pmStart = offset + 1
+                const terms = (nlp(node.textContent).json({ offset: true }) as Array<{
+                  terms: Array<{ offset: { start: number; length: number }; tags: string[] }>
+                }>)
+                terms.forEach((phrase) => phrase.terms.forEach((term) => {
+                  const tag = (['Noun', 'Verb', 'Adjective', 'Adverb'] as const).find((t) => term.tags.includes(t))
+                  if (!tag) return
+                  decos.push(Decoration.inline(
+                    pmStart + term.offset.start,
+                    pmStart + term.offset.start + term.offset.length,
+                    { style: `color: ${POS_COLORS[tag]}` }
+                  ))
+                }))
+              })
+              return DecorationSet.create(state.doc, decos)
+            },
+          },
+        })],
+      }),
+    ]
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Editor ────────────────────────────────────────────────────────────────
+  const editor = useEditor({
+    extensions,
+    content: content ? plainTextToDoc(content) : undefined,
+    autofocus: true,
+    onUpdate: ({ editor }) => {
+      const text = editor.getText({ blockSeparator: '\n' })
+      setContent(text)
+      const { activeWriteId, updateDoc } = useDocumentsStore.getState()
+      if (activeWriteId) updateDoc(activeWriteId, { content: text })
+    },
+    editorProps: { attributes: { style: editorStyle } },
+  })
+
+  // ── Word count ────────────────────────────────────────────────────────────
+  const wordCount = useMemo(() =>
+    content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0,
+    [content]
+  )
+  const charCount = content.length
+  const minRead   = Math.max(1, Math.round(wordCount / 238))
+
+  // ── Sync typography when settings change ──────────────────────────────────
+  useEffect(() => {
+    editor?.view.dom.setAttribute('style', editorStyle)
+  }, [editor, editorStyle])
+
+  // ── Bootstrap documents ───────────────────────────────────────────────────
   useEffect(() => {
     const writeDocs = docs.filter((d) => d.mode === 'write')
     if (writeDocs.length === 0) {
-      const existing = useEditorStore.getState()
-      const filesMeta = useFilesStore.getState()
-      const doc = createDoc('write', filesMeta.title || 'untitled')
-      updateDoc(doc.id, { content: existing.content || '' })
+      const doc = createDoc('write', useFilesStore.getState().title || 'untitled')
+      updateDoc(doc.id, { content: useEditorStore.getState().content || '' })
     } else if (!activeWriteId || !docs.find((d) => d.id === activeWriteId)) {
       setActiveWrite(writeDocs[0].id)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Load active doc into editor when it changes ───────────────────────────
+  // ── Load active doc ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (!activeWriteId) return
+    if (!activeWriteId || !editor) return
     const doc = docs.find((d) => d.id === activeWriteId)
-    if (!doc) return
-    if (typeof doc.content === 'string') {
-      setContent(doc.content)
-      setTitle(doc.title)
-    }
+    if (!doc || typeof doc.content !== 'string') return
+    setContent(doc.content)
+    setTitle(doc.title)
+    editor.commands.setContent(plainTextToDoc(doc.content))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWriteId])
 
-  // ── Auto-resize ───────────────────────────────────────────────────────────
+  // ── Grammar: clear when toggled off ──────────────────────────────────────
   useEffect(() => {
-    const ta = textareaRef.current
-    if (!ta) return
-    ta.style.height = 'auto'
-    ta.style.height = `${ta.scrollHeight}px`
-  }, [content])
+    if (!grammarCheck) { setLtMatches([]); ltMatchesRef.current = [] }
+  }, [grammarCheck])
 
-  // ── Grammar check ─────────────────────────────────────────────────────────
+  // ── Search: apply decorations ─────────────────────────────────────────────
   useEffect(() => {
-    if (!grammarCheck) { setLtMatches([]); return }
-    debouncedCheck.current(content, setLtMatches)
-  }, [content, grammarCheck])
+    if (!editor) return
+    if (!searchOpen || matches.length === 0) {
+      editor.view.dispatch(editor.state.tr.setMeta(searchKey, DecorationSet.empty))
+      return
+    }
+    const posMap = buildSearchPosMap(editor.state)
+    const decos: Decoration[] = []
+    for (let i = 0; i < matches.length; i++) {
+      const m = matches[i]
+      let from: number | null = null
+      for (let j = m.start; j < m.end && j < posMap.length; j++) {
+        if (posMap[j] !== null) { from = posMap[j]!; break }
+      }
+      let to: number | null = null
+      for (let j = Math.min(m.end - 1, posMap.length - 1); j >= m.start; j--) {
+        if (posMap[j] !== null) { to = posMap[j]! + 1; break }
+      }
+      if (from === null || to === null || from >= to) continue
+      decos.push(Decoration.inline(from, to, {
+        style: i === currentMatchIndex
+          ? 'background: rgba(220,160,40,0.45); border-radius: 2px; transition: background 150ms;'
+          : 'background: rgba(220,160,40,0.18); border-radius: 2px; transition: background 150ms;',
+      }))
+    }
+    editor.view.dispatch(editor.state.tr.setMeta(searchKey, DecorationSet.create(editor.state.doc, decos)))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, searchOpen, matches, currentMatchIndex])
 
-  // ── Scroll to current search match ───────────────────────────────────────
+  // ── Search: scroll to current match ──────────────────────────────────────
   useEffect(() => {
-    const ta = textareaRef.current
-    if (!ta || !searchOpen || matches.length === 0) return
-    const match = matches[currentMatchIndex]
-    if (!match) return
-    ta.focus()
-    ta.setSelectionRange(match.start, match.end)
-    setCursorPos(match.start)
-    ta.scrollIntoView({ block: 'center' })
-  }, [currentMatchIndex, matches, searchOpen])
+    if (!editor || !searchOpen || !matches.length) return
+    const m = matches[currentMatchIndex]
+    if (!m) return
+    const posMap = buildSearchPosMap(editor.state)
+    for (let j = m.start; j < m.end && j < posMap.length; j++) {
+      if (posMap[j] !== null) {
+        editor.commands.setTextSelection(posMap[j]!)
+        editor.commands.scrollIntoView()
+        break
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, currentMatchIndex, searchOpen])
 
   // ── File operations ───────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
-    const filename = (title || 'untitled').trim() + '.txt'
-    const saved = await saveToFile(content, filename)
+    if (!editor) return
+    const saved = await saveToFile(
+      editor.getText({ blockSeparator: '\n' }),
+      (title || 'untitled').trim() + '.txt'
+    )
     if (saved) markSaved()
-  }, [content, title, markSaved])
+  }, [editor, title, markSaved])
 
   const handleOpen = useCallback(async () => {
     const result = await loadFromFile()
-    if (!result) return
+    if (!result || !editor) return
+    editor.commands.setContent(plainTextToDoc(result.content))
     setContent(result.content)
     setTitle(result.name)
     markSaved()
-  }, [setContent, setTitle, markSaved])
+  }, [editor, setContent, setTitle, markSaved])
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
@@ -174,264 +384,32 @@ export function WriteEditor() {
       if (mod && e.key === 's') { e.preventDefault(); handleSave(); return }
       if (mod && e.key === 'o') { e.preventDefault(); handleOpen(); return }
       if (mod && !e.shiftKey && e.key === 'f') { e.preventDefault(); openSearch('search'); return }
-      if (mod && e.shiftKey && e.key === 'f') { e.preventDefault(); openSearch('replace'); return }
-      if (searchOpen && mod && e.key === 'g') {
-        e.preventDefault()
-        e.shiftKey ? goToPrev() : goToNext()
+      if (mod && e.shiftKey  && e.key === 'f') { e.preventDefault(); openSearch('replace'); return }
+      if (searchOpen && mod  && e.key === 'g') {
+        e.preventDefault(); e.shiftKey ? goToPrev() : goToNext()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handleSave, handleOpen, openSearch, searchOpen, goToNext, goToPrev])
 
-  // ── Tab key: insert 2 spaces ──────────────────────────────────────────────
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Tab') {
-        e.preventDefault()
-        const ta = e.currentTarget
-        const start = ta.selectionStart
-        const end = ta.selectionEnd
-        const next = content.slice(0, start) + '  ' + content.slice(end)
-        setContent(next)
-        if (activeWriteId) updateDoc(activeWriteId, { content: next })
-        requestAnimationFrame(() => {
-          ta.selectionStart = start + 2
-          ta.selectionEnd = start + 2
-        })
-      }
-    },
-    [content, setContent, activeWriteId, updateDoc]
-  )
-
-  // ── Editor event handlers ─────────────────────────────────────────────────
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const val = e.target.value
-      setContent(val)
-      setCursorPos(e.target.selectionStart)
-      if (activeWriteId) updateDoc(activeWriteId, { content: val })
-    },
-    [setContent, activeWriteId, updateDoc]
-  )
-
-  const handleKeyUp = useCallback(() => {
-    setCursorPos(textareaRef.current?.selectionStart ?? 0)
-  }, [])
-
-  const handlePointerUp = useCallback(() => {
-    setCursorPos(textareaRef.current?.selectionStart ?? 0)
-  }, [])
-
-  // ── Mirror content ────────────────────────────────────────────────────────
-  const paragraphs = useMemo(() => parseParagraphs(content), [content])
-  const currentParaIdx = useMemo(
-    () => getCurrentSegmentIndex(paragraphs, cursorPos),
-    [paragraphs, cursorPos]
-  )
-
-  const wordCount = useMemo(() => {
-    if (!content.trim()) return 0
-    return content.trim().split(/\s+/).filter(Boolean).length
-  }, [content])
-
-  const charCount = content.length
-
-  const minRead = Math.max(1, Math.round(wordCount / 238))
-
-  const grammarActive = grammarCheck && ltMatches.length > 0 && !!content
-
-  // Applies grammar underline spans to a slice of text. `segOffset` is where
-  // this slice starts in the flat content string (matches use flat offsets).
-  const grammarSpans = useCallback(
-    (text: string, segOffset: number): React.ReactNode => {
-      if (!grammarActive) return text
-      const hits = ltMatches
-        .filter((m) => m.offset < segOffset + text.length && m.offset + m.length > segOffset)
-        .sort((a, b) => a.offset - b.offset)
-      if (!hits.length) return text
-      const parts: React.ReactNode[] = []
-      let cur = 0
-      for (const m of hits) {
-        const s = Math.max(0, m.offset - segOffset)
-        const e = Math.min(text.length, m.offset + m.length - segOffset)
-        if (s > cur) parts.push(text.slice(cur, s))
-        parts.push(<span key={`g${m.offset}`} className={`lt-${m.category}`}>{text.slice(s, e)}</span>)
-        cur = e
-      }
-      if (cur < text.length) parts.push(text.slice(cur))
-      return <>{parts}</>
-    },
-    [grammarActive, ltMatches]
-  )
-
-  const mirrorContent = useMemo(() => {
-    // Search mode: match highlights (grammar not applied — search has precedence)
-    if (searchOpen && matches.length > 0) {
-      const parts: React.ReactNode[] = []
-      let lastEnd = 0
-      matches.forEach((match, i) => {
-        if (lastEnd < match.start) {
-          parts.push(<span key={`t-${lastEnd}`}>{content.slice(lastEnd, match.start)}</span>)
-        }
-        parts.push(
-          <span
-            key={`m-${match.start}`}
-            style={{
-              background: i === currentMatchIndex
-                ? 'rgba(220, 160, 40, 0.45)'
-                : 'rgba(220, 160, 40, 0.18)',
-              borderRadius: '2px',
-              transition: 'background 150ms ease-in-out',
-            }}
-          >
-            {content.slice(match.start, match.end)}
-          </span>
-        )
-        lastEnd = match.end
-      })
-      if (lastEnd < content.length) {
-        parts.push(<span key={`t-${lastEnd}`}>{content.slice(lastEnd)}</span>)
-      }
-      return <>{parts}</>
-    }
-
-    // POS highlight (with optional grammar underlines embedded)
-    if (posHighlight && content) {
-      if (focusMode && paragraphs.length > 0) {
-        return (
-          <>
-            {paragraphs.map((seg, i) => {
-              const trailingNL = seg.text.endsWith('\n')
-              const lineText = trailingNL ? seg.text.slice(0, -1) : seg.text
-              return (
-                <span
-                  key={seg.start}
-                  style={{ opacity: i === currentParaIdx ? 1 : 0.3, transition: 'opacity 180ms ease-in-out' }}
-                >
-                  {lineText ? posHighlightContent(lineText) : null}
-                  {trailingNL ? '\n' : null}
-                </span>
-              )
-            })}
-          </>
-        )
-      }
-      return posHighlightContent(content)
-    }
-
-    // Focus mode: paragraph dimming with grammar underlines integrated
-    if (focusMode && content) {
-      if (paragraphs.length === 0) {
-        return <span>{grammarSpans(content, 0)}</span>
-      }
-      return (
-        <>
-          {paragraphs.map((seg, i) => {
-            const trailingNL = seg.text.endsWith('\n')
-            const lineText = trailingNL ? seg.text.slice(0, -1) : seg.text
-            return (
-              <span
-                key={seg.start}
-                style={{ opacity: i === currentParaIdx ? 1 : 0.3, transition: 'opacity 180ms ease-in-out' }}
-              >
-                {lineText ? grammarSpans(lineText, seg.start) : null}
-                {trailingNL ? '\n' : null}
-              </span>
-            )
-          })}
-        </>
-      )
-    }
-
-    // Grammar only: show full text with underlines, no other effects
-    if (grammarActive) {
-      return <>{grammarSpans(content, 0)}</>
-    }
-
-    return null
-  }, [
-    searchOpen, matches, currentMatchIndex,
-    posHighlight, focusMode, content, paragraphs, currentParaIdx,
-    grammarActive, grammarSpans,
-  ])
-
-  const showMirror = !!(mirrorContent)
+  if (!editor) return null
 
   return (
     <div
-      key={activeWriteId ?? 'write'}
       className="content-enter write-editor-container"
-      style={{
-        maxWidth: '65ch',
-        fontSize: fontSizePx,
-        margin: '0 auto',
-        padding: '18vh 2rem 12rem',
-      }}
+      style={{ maxWidth: '65ch', fontSize: fontSizePx, margin: '0 auto', padding: '18vh 2rem 12rem' }}
     >
-      {/* ── Word count ── */}
-      {showWordCount && (
-        <WordCount words={wordCount} chars={charCount} minRead={minRead} />
-      )}
+      {showWordCount && <WordCount words={wordCount} chars={charCount} minRead={minRead} />}
 
-      {/* ── Editor area ── */}
       <div style={{ position: 'relative' }}>
-        {/* Animated placeholder */}
-        {isEmpty && (
-          <AnimatedPlaceholder
-            fontFamily={fontFamily}
-            fontSize={fontSizePx}
-            lineHeight={lineHeight}
-          />
+        {editor.isEmpty && (
+          <AnimatedPlaceholder fontFamily={fontFamily} fontSize={fontSizePx} lineHeight={String(lineHeight)} />
         )}
-
-        {/* Mirror — single layer handles all visual effects + grammar underlines */}
-        {showMirror && (
-          <div
-            aria-hidden="true"
-            style={{
-              ...textStyle,
-              fontFamily,
-              position: 'absolute',
-              inset: 0,
-              color: 'var(--fg)',
-              pointerEvents: 'none',
-              userSelect: 'none',
-              overflow: 'hidden',
-            }}
-          >
-            {mirrorContent}
-          </div>
-        )}
-
-        {/* Textarea — transparent when mirror is active so mirror text shows */}
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          onKeyUp={handleKeyUp}
-          onPointerUp={handlePointerUp}
-          autoFocus
-          spellCheck
-          placeholder=""
-          style={{
-            ...textStyle,
-            fontFamily,
-            display: 'block',
-            width: '100%',
-            minHeight: '60vh',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            resize: 'none',
-            overflow: 'hidden',
-            position: 'relative',
-            color: showMirror ? 'transparent' : 'var(--fg)',
-            caretColor: isEmpty ? 'transparent' : 'var(--fg)',
-          }}
-        />
+        <EditorContent editor={editor} />
       </div>
+
+      {grammarCheck && <GrammarPopover editor={editor} matches={ltMatches} />}
     </div>
   )
 }
@@ -446,7 +424,6 @@ function WordCount({ words, chars, minRead }: { words: number; chars: number; mi
         position: 'fixed',
         bottom: '24px',
         left: '24px',
-        textAlign: 'left',
         fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
         fontSize: '12px',
         lineHeight: 1.7,
@@ -454,7 +431,6 @@ function WordCount({ words, chars, minRead }: { words: number; chars: number; mi
         color: hovered ? 'var(--fg)' : 'var(--muted)',
         opacity: hovered ? 0.7 : 0.35,
         transition: 'color 150ms, opacity 150ms',
-        pointerEvents: 'auto',
         userSelect: 'none',
         zIndex: 50,
       }}
