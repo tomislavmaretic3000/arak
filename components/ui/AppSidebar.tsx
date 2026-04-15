@@ -83,7 +83,7 @@ export function AppSidebar() {
   const pathname = usePathname()
   const isWrite = pathname === '/write'
 
-  const { theme, font, fontSize, spacing, focusMode: focusModeStore, posHighlight, showWordCount, setTheme, setFont, setFontSize, setSpacing, setFocusMode, setPosHighlight, setShowWordCount } = useEditorStore()
+  const { theme, font, fontSize, spacing, focusMode: focusModeStore, posHighlight, showWordCount, grammarCheck, setTheme, setFont, setFontSize, setSpacing, setFocusMode, setPosHighlight, setShowWordCount, setGrammarCheck } = useEditorStore()
   const writeContent = useEditorStore((s) => s.content)
   const setWriteContent = useEditorStore((s) => s.setContent)
   const writeTitle = useFilesStore((s) => s.title)
@@ -353,6 +353,9 @@ export function AppSidebar() {
             </SettingRow>
             <SettingRow label="Word count">
               <Toggle value={showWordCount} onChange={setShowWordCount} />
+            </SettingRow>
+            <SettingRow label="Grammar check">
+              <Toggle value={grammarCheck} onChange={setGrammarCheck} />
             </SettingRow>
 
             {/* ── Format-only: Page settings ── */}

@@ -109,6 +109,30 @@ body {
   animation: contentEnter 220ms ease-out both;
 }
 
+/* ── LanguageTool underlines ── */
+.lt-spelling {
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: rgba(210, 65, 50, 0.6);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.lt-grammar {
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: rgba(50, 100, 210, 0.55);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.lt-style,
+.lt-other {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgba(130, 130, 120, 0.55);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
 /* ── Highlight ── */
 .tiptap mark {
   background: var(--subtle);

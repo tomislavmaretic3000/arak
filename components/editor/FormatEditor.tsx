@@ -20,8 +20,11 @@ import Suggestion, {
   type SuggestionProps,
   type SuggestionKeyDownProps,
 } from '@tiptap/suggestion'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { useFormatStore, PAPER_SIZES } from '@/store/format'
 import { useEditorStore } from '@/store/editor'
+import { createDebouncedChecker, type LTMatch } from '@/lib/editor/languageTool'
 import { useDocumentsStore } from '@/store/documents'
 import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommands'
 import { PageBreak } from '@/lib/editor/pageBreak'
@@ -31,6 +34,7 @@ import { TableToolbar } from './TableToolbar'
 import { MarginEditor } from './MarginEditor'
 import { PageOverlay } from './PageOverlay'
 import { PrintPreview } from './PrintPreview'
+import { GrammarPopover } from './GrammarPopover'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 
 // ── Slash menu icons ──────────────────────────────────────────────────────────
@@ -107,6 +111,7 @@ export function FormatEditor() {
     paperFormat } = useFormatStore()
   const font = useEditorStore((s) => s.font)
   const fontSize = useEditorStore((s) => s.fontSize)
+  const grammarCheck = useEditorStore((s) => s.grammarCheck)
   const { docs, activeFormatId, createDoc, updateDoc } = useDocumentsStore()
 
   // Bootstrap format doc on first mount
@@ -129,6 +134,16 @@ export function FormatEditor() {
     editorRef.current?.commands.setContent(doc.content as Record<string, unknown> ?? '')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFormatId])
+
+  // ── Grammar check state ───────────────────────────────────────────────────
+  const [ltMatches, setLtMatches] = useState<LTMatch[]>([])
+  const ltMatchesRef = useRef<LTMatch[]>([])
+  const grammarCheckRef = useRef(grammarCheck)
+  const decorSetRef = useRef<DecorationSet>(DecorationSet.empty)
+  const grammarPluginKey = useRef(new PluginKey<DecorationSet>('grammarCheck'))
+  const debouncedCheck = useRef(createDebouncedChecker(1800))
+
+  useEffect(() => { grammarCheckRef.current = grammarCheck }, [grammarCheck])
 
   const editorRef = useRef<ReturnType<typeof useEditor>>(null)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -257,6 +272,109 @@ export function FormatEditor() {
     : font === 'mono' ? 'var(--font-noto-mono)'
     : 'var(--font-noto-sans)'
 
+  // ── Grammar decoration extension ──────────────────────────────────────────
+  const GrammarExtension = useMemo(() => {
+    const key = grammarPluginKey.current
+    return Extension.create({
+      name: 'grammarCheck',
+      addProseMirrorPlugins() {
+        return [
+          new Plugin({
+            key,
+            state: {
+              init: () => DecorationSet.empty,
+              apply(tr, set) {
+                const next = tr.getMeta(key)
+                if (next !== undefined) return next as DecorationSet
+                return set.map(tr.mapping, tr.doc)
+              },
+            },
+            props: {
+              decorations(state) {
+                return key.getState(state) ?? DecorationSet.empty
+              },
+            },
+            view(view) {
+              function run() {
+                if (!grammarCheckRef.current) {
+                  const tr = view.state.tr.setMeta(key, DecorationSet.empty)
+                  view.dispatch(tr)
+                  ltMatchesRef.current = []
+                  setLtMatches([])
+                  return
+                }
+                const text = view.state.doc.textContent
+                debouncedCheck.current(text, (matches) => {
+                  // Build per-block decorations with correct ProseMirror positions
+                  const decos: Decoration[] = []
+                  // Build a flat text→PM position map
+                  let flatOffset = 0
+                  const segments: { pmStart: number; text: string }[] = []
+                  view.state.doc.forEach((node) => {
+                    if (node.isTextblock) {
+                      segments.push({ pmStart: flatOffset, text: node.textContent })
+                      flatOffset += node.textContent.length
+                    }
+                  })
+                  // Now map each match offset to a PM position
+                  let pmPos = 1
+                  view.state.doc.forEach((node) => {
+                    if (!node.isTextblock) { pmPos += node.nodeSize; return }
+                    const blockStart = pmPos + 1
+                    for (const m of matches) {
+                      const nodeText = node.textContent
+                      if (m.offset >= 0 && m.offset + m.length <= nodeText.length) {
+                        // Only if match falls within this block
+                        let cumulative = 0
+                        let blockOffset = 0
+                        view.state.doc.forEach((n, o) => {
+                          if (!n.isTextblock) return
+                          if (n === node) blockOffset = cumulative
+                          cumulative += n.textContent.length
+                        })
+                        if (m.offset >= blockOffset && m.offset + m.length <= blockOffset + nodeText.length) {
+                          const from = blockStart + (m.offset - blockOffset)
+                          const to = from + m.length
+                          decos.push(Decoration.inline(from, to, {
+                            class: `lt-${m.category}`,
+                            'data-lt-rule': m.ruleId,
+                            'data-lt-idx': String(matches.indexOf(m)),
+                          }))
+                        }
+                      }
+                    }
+                    pmPos += node.nodeSize
+                  })
+                  const set = DecorationSet.create(view.state.doc, decos)
+                  decorSetRef.current = set
+                  const tr = view.state.tr.setMeta(key, set)
+                  view.dispatch(tr)
+                  ltMatchesRef.current = matches
+                  setLtMatches(matches)
+                })
+              }
+              run()
+              return {
+                update(view, prev) {
+                  if (!view.state.doc.eq(prev.doc)) run()
+                },
+              }
+            },
+          }),
+        ]
+      },
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Re-run check when grammarCheck is toggled on
+  useEffect(() => {
+    if (!grammarCheck) {
+      setLtMatches([])
+      ltMatchesRef.current = []
+    }
+  }, [grammarCheck])
+
   // ── TipTap editor ──────────────────────────────────────────────────────────
   const editor = useEditor({
     extensions: [
@@ -288,6 +406,7 @@ export function FormatEditor() {
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       PageBreak,
       SlashCommandExtension,
+      GrammarExtension,
     ],
     content: content ?? undefined,
     autofocus: true,
@@ -405,6 +524,9 @@ export function FormatEditor() {
 
       {/* ── Page numbers / header / footer ── */}
       <PageOverlay cardRef={cardRef} paperFormat={paperFormat} />
+
+      {/* ── Grammar popover ── */}
+      {grammarCheck && <GrammarPopover editor={editor} matches={ltMatches} />}
 
       {/* ── Slash command menu ── */}
       {slashMenu && slashMenu.items.length > 0 && (() => {

@@ -11,6 +11,7 @@ interface EditorStore {
   focusMode: boolean
   posHighlight: boolean
   showWordCount: boolean
+  grammarCheck: boolean
   theme: Theme
   font: Font
   fontSize: SizeOption
@@ -20,6 +21,7 @@ interface EditorStore {
   setFocusMode: (v: boolean) => void
   setPosHighlight: (v: boolean) => void
   setShowWordCount: (v: boolean) => void
+  setGrammarCheck: (v: boolean) => void
   setTheme: (theme: Theme) => void
   setFont: (font: Font) => void
   setFontSize: (v: SizeOption) => void
@@ -33,6 +35,7 @@ export const useEditorStore = create<EditorStore>()(
       focusMode: true,
       posHighlight: false,
       showWordCount: false,
+      grammarCheck: false,
       theme: 'light',
       font: 'serif',
       fontSize: 'medium',
@@ -42,6 +45,7 @@ export const useEditorStore = create<EditorStore>()(
       setFocusMode: (focusMode) => set({ focusMode }),
       setPosHighlight: (posHighlight) => set({ posHighlight }),
       setShowWordCount: (showWordCount) => set({ showWordCount }),
+      setGrammarCheck: (grammarCheck) => set({ grammarCheck }),
       setTheme: (theme) => set({ theme }),
       setFont: (font) => set({ font }),
       setFontSize: (fontSize) => set({ fontSize }),

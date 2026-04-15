@@ -9,6 +9,7 @@ import { useUIStore } from '@/store/ui'
 import { parseParagraphs, getCurrentSegmentIndex } from '@/lib/editor/sentences'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 import { AnimatedPlaceholder } from './AnimatedPlaceholder'
+import { createDebouncedChecker, type LTMatch } from '@/lib/editor/languageTool'
 import nlp from 'compromise'
 
 // POS color map — subtle, readable on all themes
@@ -54,7 +55,7 @@ function posHighlightContent(text: string): React.ReactNode {
 }
 
 export function WriteEditor() {
-  const { content, focusMode: focusModeStore, posHighlight, showWordCount, font, fontSize, spacing, setContent } =
+  const { content, focusMode: focusModeStore, posHighlight, showWordCount, grammarCheck, font, fontSize, spacing, setContent } =
     useEditorStore()
   const menuOpen = useUIStore((s) => s.menuOpen)
   const focusMode = focusModeStore && !menuOpen
@@ -74,6 +75,8 @@ export function WriteEditor() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [cursorPos, setCursorPos] = useState(0)
+  const [ltMatches, setLtMatches] = useState<LTMatch[]>([])
+  const debouncedCheck = useRef(createDebouncedChecker(1800))
 
   const fontFamily =
     font === 'serif'
@@ -130,6 +133,12 @@ export function WriteEditor() {
     ta.style.height = 'auto'
     ta.style.height = `${ta.scrollHeight}px`
   }, [content])
+
+  // ── Grammar check ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!grammarCheck) { setLtMatches([]); return }
+    debouncedCheck.current(content, setLtMatches)
+  }, [content, grammarCheck])
 
   // ── Scroll to current search match ───────────────────────────────────────
   useEffect(() => {
@@ -318,7 +327,28 @@ export function WriteEditor() {
     posHighlight, focusMode, content, paragraphs, currentParaIdx,
   ])
 
-  const showMirror = searchOpen || focusMode || posHighlight
+  // ── Grammar underline layer ───────────────────────────────────────────────
+  const grammarMirror = useMemo(() => {
+    if (!grammarCheck || ltMatches.length === 0 || !content) return null
+    const parts: React.ReactNode[] = []
+    let last = 0
+    // Sort matches by offset
+    const sorted = [...ltMatches].sort((a, b) => a.offset - b.offset)
+    for (const m of sorted) {
+      if (m.offset < last) continue
+      if (m.offset > last) parts.push(<span key={`t-${last}`}>{content.slice(last, m.offset)}</span>)
+      parts.push(
+        <span key={`m-${m.offset}`} className={`lt-${m.category}`}>
+          {content.slice(m.offset, m.offset + m.length)}
+        </span>
+      )
+      last = m.offset + m.length
+    }
+    if (last < content.length) parts.push(<span key={`t-${last}`}>{content.slice(last)}</span>)
+    return <>{parts}</>
+  }, [grammarCheck, ltMatches, content])
+
+  const showMirror = searchOpen || focusMode || posHighlight || (grammarCheck && ltMatches.length > 0)
 
   return (
     <div
@@ -362,6 +392,8 @@ export function WriteEditor() {
               overflow: 'hidden',
             }}
           >
+            {/* Grammar underlines sit beneath other highlights */}
+            {grammarMirror && !mirrorContent && grammarMirror}
             {mirrorContent}
           </div>
         )}
