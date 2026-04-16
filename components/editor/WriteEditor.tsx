@@ -92,6 +92,7 @@ export function WriteEditor() {
   const [ltMatches, setLtMatches] = useState<LTMatch[]>([])
   const ltMatchesRef   = useRef<LTMatch[]>([])
   const debouncedCheck = useRef(createDebouncedChecker(1800))
+  const triggerCheckRef = useRef<(() => void) | null>(null)
 
   // ── Stable plugin keys ────────────────────────────────────────────────────
   const grammarKey = useMemo(() => new PluginKey<DecorationSet>('writeGrammar'), [])
@@ -177,6 +178,7 @@ export function WriteEditor() {
                 _ltMatchesRef.current = ms; _setLtMatches(ms)
               })
             }
+            triggerCheckRef.current = run
             run()
             return { update(v, prev) { if (!v.state.doc.eq(prev.doc)) run() } }
           },
@@ -304,12 +306,19 @@ export function WriteEditor() {
     setContent(doc.content)
     setTitle(doc.title)
     editor.commands.setContent(plainTextToDoc(doc.content))
+    // Run grammar check immediately on load (plugin fires on doc change,
+    // but setContent may not trigger update if content is identical)
+    triggerCheckRef.current?.()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWriteId])
 
-  // ── Grammar: clear when toggled off ──────────────────────────────────────
+  // ── Grammar: clear when toggled off, run immediately when toggled on ──────
   useEffect(() => {
-    if (!grammarCheck) { setLtMatches([]); ltMatchesRef.current = [] }
+    if (!grammarCheck) {
+      setLtMatches([]); ltMatchesRef.current = []
+    } else {
+      triggerCheckRef.current?.()
+    }
   }, [grammarCheck])
 
   // ── Search: apply decorations ─────────────────────────────────────────────

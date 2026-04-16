@@ -132,6 +132,7 @@ export function FormatEditor() {
     setContent(doc.content as Record<string, unknown>)
     setTitle(doc.title)
     editorRef.current?.commands.setContent(doc.content as Record<string, unknown> ?? '')
+    triggerCheckRef.current?.()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFormatId])
 
@@ -142,6 +143,7 @@ export function FormatEditor() {
   const decorSetRef = useRef<DecorationSet>(DecorationSet.empty)
   const grammarPluginKey = useRef(new PluginKey<DecorationSet>('grammarCheck'))
   const debouncedCheck = useRef(createDebouncedChecker(1800))
+  const triggerCheckRef = useRef<(() => void) | null>(null)
 
   useEffect(() => { grammarCheckRef.current = grammarCheck }, [grammarCheck])
 
@@ -335,6 +337,7 @@ export function FormatEditor() {
                   setLtMatches(matches)
                 })
               }
+              triggerCheckRef.current = run
               run()
               return {
                 update(view, prev) {
@@ -354,6 +357,8 @@ export function FormatEditor() {
     if (!grammarCheck) {
       setLtMatches([])
       ltMatchesRef.current = []
+    } else {
+      triggerCheckRef.current?.()
     }
   }, [grammarCheck])
 
