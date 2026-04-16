@@ -28,6 +28,11 @@ export function GrammarPopover({ editor, matches }: Props) {
     const dom = editor.view.dom as HTMLElement
 
     const onClick = (e: MouseEvent) => {
+      // TipTap decorations render real <span> elements — read their rect directly
+      const span = (e.target as HTMLElement).closest('.lt-spelling, .lt-grammar, .lt-style, .lt-other') as HTMLElement | null
+
+      if (!span) { setPopover(null); return }
+
       const result = editor.view.posAtCoords({ left: e.clientX, top: e.clientY })
       if (!result) { setPopover(null); return }
 
@@ -40,22 +45,8 @@ export function GrammarPopover({ editor, matches }: Props) {
 
       if (!match) { setPopover(null); return }
 
-      // Anchor to the word's bounding box via DOM Range
-      const end    = match.offset + match.length
-      const fromPM = posMap[match.offset]
-      const toPM   = posMap[end - 1] + 1
-      try {
-        const domFrom = editor.view.domAtPos(fromPM)
-        const domTo   = editor.view.domAtPos(toPM)
-        const range   = document.createRange()
-        range.setStart(domFrom.node, domFrom.offset)
-        range.setEnd(domTo.node, domTo.offset)
-        const rect = range.getBoundingClientRect()
-        setPopover({ match, x: rect.left + rect.width / 2, y: rect.bottom + 6 })
-      } catch {
-        // fallback to click position if range fails
-        setPopover({ match, x: e.clientX, y: e.clientY + 6 })
-      }
+      const rect = span.getBoundingClientRect()
+      setPopover({ match, x: rect.left + rect.width / 2, y: rect.bottom + 6 })
       e.stopPropagation()
     }
 
