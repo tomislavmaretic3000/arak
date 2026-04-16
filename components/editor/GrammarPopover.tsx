@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Replace } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import type { LTMatch } from '@/lib/editor/languageTool'
 
@@ -103,22 +102,6 @@ export function GrammarPopover({ editor, matches }: Props) {
         whiteSpace: 'nowrap',
       }}
     >
-      {/* Icon */}
-      <div style={{
-        width: 36, height: 36,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'rgba(255,255,255,0.6)',
-        flexShrink: 0,
-      }}>
-        <Replace size={16} strokeWidth={1.5} />
-      </div>
-
-      {/* Separator */}
-      {suggestions.length > 0 && (
-        <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
-      )}
-
-      {/* Suggestion buttons */}
       {suggestions.map((r) => (
         <button
           key={r}
@@ -132,7 +115,7 @@ export function GrammarPopover({ editor, matches }: Props) {
             border: 'none',
             borderRadius: 100,
             color: 'rgba(255,255,255,0.6)',
-            fontSize: 13,
+            fontSize: 15,
             fontFamily: 'inherit',
             cursor: 'pointer',
             transition: 'background 100ms, color 100ms',
@@ -151,13 +134,8 @@ export function GrammarPopover({ editor, matches }: Props) {
         </button>
       ))}
 
-      {/* No suggestions: show short message */}
       {suggestions.length === 0 && (
-        <span style={{
-          height: 36, padding: '0 12px',
-          display: 'flex', alignItems: 'center',
-          fontSize: 13, color: 'rgba(255,255,255,0.4)',
-        }}>
+        <span style={{ height: 36, padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 15, color: 'rgba(255,255,255,0.4)' }}>
           {match.shortMessage || match.message}
         </span>
       )}
