@@ -40,14 +40,22 @@ export function GrammarPopover({ editor, matches }: Props) {
 
       if (!match) { setPopover(null); return }
 
-      // Anchor to the word's bounding box, not the mouse cursor
-      const end = match.offset + match.length
+      // Anchor to the word's bounding box via DOM Range
+      const end    = match.offset + match.length
       const fromPM = posMap[match.offset]
       const toPM   = posMap[end - 1] + 1
-      const start  = editor.view.coordsAtPos(fromPM)
-      const finish = editor.view.coordsAtPos(toPM)
-      const midX   = (start.left + finish.left) / 2
-      setPopover({ match, x: midX, y: finish.bottom + 6 })
+      try {
+        const domFrom = editor.view.domAtPos(fromPM)
+        const domTo   = editor.view.domAtPos(toPM)
+        const range   = document.createRange()
+        range.setStart(domFrom.node, domFrom.offset)
+        range.setEnd(domTo.node, domTo.offset)
+        const rect = range.getBoundingClientRect()
+        setPopover({ match, x: rect.left + rect.width / 2, y: rect.bottom + 6 })
+      } catch {
+        // fallback to click position if range fails
+        setPopover({ match, x: e.clientX, y: e.clientY + 6 })
+      }
       e.stopPropagation()
     }
 
