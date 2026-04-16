@@ -12,6 +12,7 @@ import { useFilesStore } from '@/store/files'
 import { useSearchStore } from '@/store/search'
 import { useDocumentsStore } from '@/store/documents'
 import { useUIStore } from '@/store/ui'
+import { editorRefs } from '@/store/editorRefs'
 import { createDebouncedChecker, type LTMatch } from '@/lib/editor/languageTool'
 import { GrammarPopover } from './GrammarPopover'
 import { AnimatedPlaceholder } from './AnimatedPlaceholder'
@@ -77,7 +78,7 @@ export function WriteEditor() {
   const menuOpen  = useUIStore((s) => s.menuOpen)
   const focusMode = focusModeStore && !menuOpen
   const { title, setTitle, markSaved }  = useFilesStore()
-  const { isOpen: searchOpen, matches, currentMatchIndex, open: openSearch, goToNext, goToPrev } = useSearchStore()
+  const { isOpen: searchOpen, matches, currentMatchIndex, goToNext, goToPrev } = useSearchStore()
   const { docs, activeWriteId, createDoc, updateDoc, setActiveWrite } = useDocumentsStore()
 
   // ── Refs so plugins never read stale values ───────────────────────────────
@@ -281,6 +282,12 @@ export function WriteEditor() {
   const charCount = content.length
   const minRead   = Math.max(1, Math.round(wordCount / 238))
 
+  // ── Register editor ref ───────────────────────────────────────────────────
+  useEffect(() => {
+    editorRefs.write = editor ?? null
+    return () => { editorRefs.write = null }
+  }, [editor])
+
   // ── Sync typography when settings change ──────────────────────────────────
   useEffect(() => {
     editor?.view.dom.setAttribute('style', editorStyle)
@@ -386,21 +393,19 @@ export function WriteEditor() {
     markSaved()
   }, [editor, setContent, setTitle, markSaved])
 
-  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // ── Keyboard shortcuts (Cmd+S / Cmd+O only — Cmd+F/K handled by CommandBar) ──
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey
       if (mod && e.key === 's') { e.preventDefault(); handleSave(); return }
       if (mod && e.key === 'o') { e.preventDefault(); handleOpen(); return }
-      if (mod && !e.shiftKey && e.key === 'f') { e.preventDefault(); openSearch('search'); return }
-      if (mod && e.shiftKey  && e.key === 'f') { e.preventDefault(); openSearch('replace'); return }
-      if (searchOpen && mod  && e.key === 'g') {
+      if (searchOpen && mod && e.key === 'g') {
         e.preventDefault(); e.shiftKey ? goToPrev() : goToNext()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [handleSave, handleOpen, openSearch, searchOpen, goToNext, goToPrev])
+  }, [handleSave, handleOpen, searchOpen, goToNext, goToPrev])
 
   if (!editor) return null
 

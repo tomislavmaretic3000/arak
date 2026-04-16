@@ -26,6 +26,7 @@ import { useFormatStore, PAPER_SIZES } from '@/store/format'
 import { useEditorStore } from '@/store/editor'
 import { createDebouncedChecker, type LTMatch } from '@/lib/editor/languageTool'
 import { useDocumentsStore } from '@/store/documents'
+import { editorRefs } from '@/store/editorRefs'
 import { SLASH_COMMANDS, type SlashCommandItem } from '@/lib/editor/slashCommands'
 import { PageBreak } from '@/lib/editor/pageBreak'
 import { Divider } from '@/lib/editor/divider'
@@ -474,6 +475,12 @@ export function FormatEditor() {
     window.addEventListener('arak:print', onPrint)
     return () => window.removeEventListener('arak:print', onPrint)
   }, [])
+
+  // Register editor ref for CommandBar
+  useEffect(() => {
+    editorRefs.format = editor ?? null
+    return () => { editorRefs.format = null }
+  }, [editor])
 
   if (!editor) return null
   editorRef.current = editor

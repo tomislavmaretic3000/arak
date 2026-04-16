@@ -2,7 +2,7 @@ import { ThemeProvider } from '@/components/editor/ThemeProvider'
 import { AutosaveProvider } from '@/components/editor/AutosaveProvider'
 import { EditorShell } from '@/components/layout/EditorShell'
 import { WriteEditor } from '@/components/editor/WriteEditor'
-import { SearchBar } from '@/components/editor/SearchBar'
+import { CommandBar } from '@/components/ui/CommandBar'
 
 export default function WritePage() {
   return (
@@ -10,7 +10,7 @@ export default function WritePage() {
       <AutosaveProvider>
         <EditorShell>
           <WriteEditor />
-          <SearchBar />
+          <CommandBar />
         </EditorShell>
       </AutosaveProvider>
     </ThemeProvider>
