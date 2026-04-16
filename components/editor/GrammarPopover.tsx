@@ -1,28 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { SpellCheck, Languages, Pencil } from 'lucide-react'
+import { Replace } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import type { LTMatch } from '@/lib/editor/languageTool'
 
 interface Props {
   editor: Editor
   matches: LTMatch[]
-}
-
-const ICON_PROPS = { size: 16, strokeWidth: 1.5 }
-
-const CATEGORY_COLOR: Record<string, string> = {
-  spelling: 'rgba(210,65,50,0.85)',
-  grammar:  'rgba(55,115,210,0.85)',
-  style:    'rgba(140,140,130,0.7)',
-  other:    'rgba(140,140,130,0.7)',
-}
-
-function CategoryIcon({ category }: { category: string }) {
-  if (category === 'spelling') return <SpellCheck {...ICON_PROPS} />
-  if (category === 'grammar')  return <Languages  {...ICON_PROPS} />
-  return <Pencil {...ICON_PROPS} />
 }
 
 function buildPosMap(editor: Editor): number[] {
@@ -54,7 +39,15 @@ export function GrammarPopover({ editor, matches }: Props) {
       }) ?? null
 
       if (!match) { setPopover(null); return }
-      setPopover({ match, x: e.clientX, y: e.clientY + 16 })
+
+      // Anchor to the word's bounding box, not the mouse cursor
+      const end = match.offset + match.length
+      const fromPM = posMap[match.offset]
+      const toPM   = posMap[end - 1] + 1
+      const start  = editor.view.coordsAtPos(fromPM)
+      const finish = editor.view.coordsAtPos(toPM)
+      const midX   = (start.left + finish.left) / 2
+      setPopover({ match, x: midX, y: finish.bottom + 6 })
       e.stopPropagation()
     }
 
@@ -86,7 +79,6 @@ export function GrammarPopover({ editor, matches }: Props) {
   if (!popover) return null
 
   const { match, x, y } = popover
-  const color = CATEGORY_COLOR[match.category] ?? CATEGORY_COLOR.other
   const suggestions = match.replacements.slice(0, 5)
 
   return (
@@ -111,14 +103,14 @@ export function GrammarPopover({ editor, matches }: Props) {
         whiteSpace: 'nowrap',
       }}
     >
-      {/* Category icon */}
+      {/* Icon */}
       <div style={{
         width: 36, height: 36,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color,
+        color: 'rgba(255,255,255,0.6)',
         flexShrink: 0,
       }}>
-        <CategoryIcon category={match.category} />
+        <Replace size={16} strokeWidth={1.5} />
       </div>
 
       {/* Separator */}
