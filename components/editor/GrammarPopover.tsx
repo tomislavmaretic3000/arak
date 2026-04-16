@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Replace } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import type { LTMatch } from '@/lib/editor/languageTool'
@@ -80,7 +81,7 @@ export function GrammarPopover({ editor, matches }: Props) {
   const { match, x, y } = popover
   const suggestions = match.replacements.slice(0, 5)
 
-  return (
+  return createPortal(
     <div
       ref={ref}
       className="format-toolbar-enter"
@@ -160,6 +161,7 @@ export function GrammarPopover({ editor, matches }: Props) {
           {match.shortMessage || match.message}
         </span>
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
