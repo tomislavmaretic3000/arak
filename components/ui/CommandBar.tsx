@@ -261,7 +261,7 @@ export function CommandBar() {
       className="cmdbar-enter"
       style={{
         position: 'fixed',
-        top: 72,
+        top: 11,
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 200,
