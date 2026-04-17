@@ -134,12 +134,19 @@ export function CommandBar() {
 
   const COMMANDS = useMemo(() => buildCommands(open), [open])
 
-  // ── Search store sync ─────────────────────────────────────────────────────
+  // ── Search store sync — always active when bar is open ───────────────────
   useEffect(() => {
-    if (isOpen && isFindMode) openSearch(isReplaceMode ? 'replace' : 'search')
-    else closeSearch()
+    if (isOpen) openSearch('search')
+    else { closeSearch(); setQuery('') }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, mode])
+  }, [isOpen])
+
+  // Drive document search from whatever the active input contains
+  useEffect(() => {
+    if (!isOpen) return
+    setQuery(isCmdMode ? cmdQuery : query)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isCmdMode, cmdQuery])
 
   // matches are computed inside WriteEditor/FormatEditor directly from live text
 
@@ -224,8 +231,9 @@ export function CommandBar() {
     if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? goToPrev() : goToNext() }
   }, [goToNext, goToPrev])
 
-  const matchLabel = query ? (matches.length === 0 ? 'no matches' : `${currentMatchIndex + 1} / ${matches.length}`) : ''
-  const hasResults = isCmdMode && filteredCmds.length > 0
+  const activeQuery = isCmdMode ? cmdQuery : query
+  const matchLabel  = activeQuery ? (matches.length === 0 ? 'no matches' : `${currentMatchIndex + 1} / ${matches.length}`) : ''
+  const hasResults  = isCmdMode && filteredCmds.length > 0
 
   if (!isOpen) return null
 
@@ -265,15 +273,15 @@ export function CommandBar() {
           }}
         />
 
-        {/* Match counter */}
-        {isFindMode && matchLabel && (
+        {/* Match counter — shown in all modes */}
+        {matchLabel && (
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em', flexShrink: 0 }}>
             {matchLabel}
           </span>
         )}
 
         {/* Nav arrows */}
-        {isFindMode && matches.length > 0 && (
+        {matches.length > 0 && (
           <div style={{ display: 'flex', gap: 2 }}>
             {(['↑', '↓'] as const).map((arrow) => (
               <button
@@ -351,12 +359,6 @@ export function CommandBar() {
         </>
       )}
 
-      {/* No results */}
-      {isCmdMode && cmdQuery && filteredCmds.length === 0 && (
-        <div style={{ padding: '10px 16px 10px', fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>
-          No results
-        </div>
-      )}
     </div>,
     document.body
   )
