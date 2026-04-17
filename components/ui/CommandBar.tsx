@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useCommandBarStore } from '@/store/commandBar'
 import { useSearchStore } from '@/store/search'
@@ -222,13 +223,20 @@ export function CommandBar() {
 
   // ── Cmd keyboard ─────────────────────────────────────────────────────────
   const handleCmdKey = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown')  { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, filteredCmds.length - 1)) }
-    else if (e.key === 'ArrowUp')   { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, 0)) }
-    else if (e.key === 'Enter') { e.preventDefault(); const c = filteredCmds[selectedIdx]; if (c) execCommand(c) }
-  }, [filteredCmds, selectedIdx, execCommand])
+    if (filteredCmds.length > 0) {
+      if (e.key === 'ArrowDown')  { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, filteredCmds.length - 1)) }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, 0)) }
+      else if (e.key === 'Enter') { e.preventDefault(); const c = filteredCmds[selectedIdx]; if (c) execCommand(c) }
+    } else if (matches.length > 0) {
+      // No commands showing — arrows navigate document matches
+      if (e.key === 'ArrowDown' || e.key === 'Enter') { e.preventDefault(); goToNext() }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); goToPrev() }
+    }
+  }, [filteredCmds, selectedIdx, execCommand, matches.length, goToNext, goToPrev])
 
   const handleFindKey = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? goToPrev() : goToNext() }
+    if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); goToNext() }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); goToPrev() }
   }, [goToNext, goToPrev])
 
   const activeQuery = isCmdMode ? cmdQuery : query
@@ -251,7 +259,7 @@ export function CommandBar() {
         maxWidth: 'calc(100vw - 32px)',
         background: '#1a1a18',
         borderRadius: 20,
-        boxShadow: '0 4px 32px rgba(0,0,0,0.35)',
+        boxShadow: 'none',
         padding: PADDING,
         fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
       }}
@@ -273,25 +281,22 @@ export function CommandBar() {
           }}
         />
 
-        {/* Match counter — shown in all modes */}
+        {/* Match counter */}
         {matchLabel && (
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em', flexShrink: 0 }}>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.04em', flexShrink: 0 }}>
             {matchLabel}
           </span>
         )}
 
-        {/* Nav arrows */}
+        {/* Nav chevrons — no background */}
         {matches.length > 0 && (
-          <div style={{ display: 'flex', gap: 2 }}>
-            {(['↑', '↓'] as const).map((arrow) => (
-              <button
-                key={arrow}
-                onMouseDown={(e) => { e.preventDefault(); arrow === '↑' ? goToPrev() : goToNext() }}
-                style={navBtn}
-              >
-                {arrow}
-              </button>
-            ))}
+          <div style={{ display: 'flex', gap: 0 }}>
+            <button onMouseDown={(e) => { e.preventDefault(); goToPrev() }} style={navBtn}>
+              <ChevronUp size={15} strokeWidth={1.8} />
+            </button>
+            <button onMouseDown={(e) => { e.preventDefault(); goToNext() }} style={navBtn}>
+              <ChevronDown size={15} strokeWidth={1.8} />
+            </button>
           </div>
         )}
       </div>
@@ -367,9 +372,9 @@ export function CommandBar() {
 // ── Shared button styles ──────────────────────────────────────────────────────
 
 const navBtn: React.CSSProperties = {
-  width: 28, height: 28, border: 'none', borderRadius: 8,
-  background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)',
-  fontSize: 13, cursor: 'pointer',
+  width: 24, height: 24, border: 'none', borderRadius: 6,
+  background: 'none', color: 'rgba(255,255,255,0.45)',
+  cursor: 'pointer', padding: 0,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 }
 
