@@ -12,6 +12,7 @@ import { useFilesStore } from '@/store/files'
 import { useSearchStore } from '@/store/search'
 import { useDocumentsStore } from '@/store/documents'
 import { useUIStore } from '@/store/ui'
+import { useCommandBarStore } from '@/store/commandBar'
 import { editorRefs } from '@/store/editorRefs'
 import { createDebouncedChecker, type LTMatch } from '@/lib/editor/languageTool'
 import { GrammarPopover } from './GrammarPopover'
@@ -77,7 +78,8 @@ export function WriteEditor() {
     grammarCheck, font, fontSize, spacing, setContent,
   } = useEditorStore()
   const menuOpen  = useUIStore((s) => s.menuOpen)
-  const focusMode = focusModeStore && !menuOpen
+  const cmdBarOpen = useCommandBarStore((s) => s.isOpen)
+  const focusMode = focusModeStore && !menuOpen && !cmdBarOpen
   const { title, setTitle, markSaved }  = useFilesStore()
   const { isOpen: searchOpen, matches, currentMatchIndex, goToNext, goToPrev } = useSearchStore()
   const { docs, activeWriteId, createDoc, updateDoc, setActiveWrite } = useDocumentsStore()
@@ -375,7 +377,7 @@ export function WriteEditor() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, searchOpen, matches, currentMatchIndex])
 
-  // ── Search: scroll to current match ──────────────────────────────────────
+  // ── Search: scroll to current match (also on first match appearance) ────────
   useEffect(() => {
     if (!editor || !searchOpen || !matches.length) return
     const m = matches[currentMatchIndex]
@@ -389,7 +391,7 @@ export function WriteEditor() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, currentMatchIndex, searchOpen])
+  }, [editor, currentMatchIndex, matches, searchOpen])
 
   // ── File operations ───────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
