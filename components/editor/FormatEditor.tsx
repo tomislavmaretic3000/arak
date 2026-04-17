@@ -143,7 +143,7 @@ export function FormatEditor() {
   const grammarCheckRef = useRef(grammarCheck)
   const decorSetRef = useRef<DecorationSet>(DecorationSet.empty)
   const grammarPluginKey = useRef(new PluginKey<DecorationSet>('grammarCheck'))
-  const debouncedCheck = useRef(createDebouncedChecker(1800))
+  const debouncedCheck = useRef(createDebouncedChecker(2000))
   const triggerCheckRef = useRef<(() => void) | null>(null)
 
   useEffect(() => { grammarCheckRef.current = grammarCheck }, [grammarCheck])

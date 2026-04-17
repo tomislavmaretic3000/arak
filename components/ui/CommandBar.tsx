@@ -141,10 +141,7 @@ export function CommandBar() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, mode])
 
-  useEffect(() => {
-    if (!isOpen || !isFindMode) return
-    setMatches(findMatches(getEditorText(pathname), query))
-  }, [isOpen, isFindMode, query, pathname, setMatches])
+  // matches are computed inside WriteEditor/FormatEditor directly from live text
 
   // ── Focus ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -245,11 +242,10 @@ export function CommandBar() {
         width: 460,
         maxWidth: 'calc(100vw - 32px)',
         background: '#1a1a18',
-        borderRadius: hasResults || isReplaceMode ? 20 : 100,
+        borderRadius: 20,
         boxShadow: '0 4px 32px rgba(0,0,0,0.35)',
         padding: PADDING,
         fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-        transition: 'border-radius 120ms ease',
       }}
     >
       {/* ── Input row ── */}

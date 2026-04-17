@@ -27,15 +27,28 @@ function categorise(categoryId: string): LTMatch['category'] {
   return 'other'
 }
 
-export async function checkText(text: string, language = 'en-US'): Promise<LTMatch[]> {
+export async function checkText(
+  text: string,
+  language = 'en-US',
+  signal?: AbortSignal,
+): Promise<LTMatch[]> {
   if (!text.trim()) return []
+
   const body = new URLSearchParams({ text, language, enabledOnly: 'false' })
   const res = await fetch(LT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
     body,
+    signal,
   })
-  if (!res.ok) return []
+
+  if (res.status === 429) {
+    // Rate limited — throw so caller can back off
+    throw Object.assign(new Error('rate-limited'), { status: 429 })
+  }
+
+  if (!res.ok) throw new Error(`LT error ${res.status}`)
+
   const data = await res.json() as { matches: LTRawMatch[] }
   return (data.matches ?? []).map((m) => ({
     offset: m.offset,
@@ -48,9 +61,10 @@ export async function checkText(text: string, language = 'en-US'): Promise<LTMat
   }))
 }
 
-// Debounced version — cancels in-flight timer on each new call
-export function createDebouncedChecker(delay = 1500) {
-  let timer: ReturnType<typeof setTimeout> | null = null
+// ── Debounced checker with retry on 429 ───────────────────────────────────────
+export function createDebouncedChecker(delay = 2000) {
+  let timer:      ReturnType<typeof setTimeout> | null = null
+  let retryTimer: ReturnType<typeof setTimeout> | null = null
   let controller: AbortController | null = null
 
   return function debounced(
@@ -59,15 +73,37 @@ export function createDebouncedChecker(delay = 1500) {
     language = 'en-US',
   ) {
     if (timer) clearTimeout(timer)
+    if (retryTimer) clearTimeout(retryTimer)
+
     timer = setTimeout(async () => {
       controller?.abort()
       controller = new AbortController()
-      try {
-        const matches = await checkText(text, language)
-        onResult(matches)
-      } catch {
-        // silently ignore network errors / aborts
+      const signal = controller.signal
+
+      async function attempt(retryDelay: number) {
+        try {
+          const matches = await checkText(text, language, signal)
+          onResult(matches)
+        } catch (err: unknown) {
+          if (signal.aborted) return
+          const status = (err as { status?: number }).status
+          if (status === 429) {
+            // Back off and retry once
+            retryTimer = setTimeout(async () => {
+              if (signal.aborted) return
+              try {
+                const matches = await checkText(text, language, signal)
+                onResult(matches)
+              } catch {
+                // give up silently
+              }
+            }, retryDelay)
+          }
+          // other errors: silently ignore
+        }
       }
+
+      attempt(8000) // retry after 8s if rate-limited
     }, delay)
   }
 }

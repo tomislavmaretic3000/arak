@@ -16,6 +16,7 @@ import { editorRefs } from '@/store/editorRefs'
 import { createDebouncedChecker, type LTMatch } from '@/lib/editor/languageTool'
 import { GrammarPopover } from './GrammarPopover'
 import { AnimatedPlaceholder } from './AnimatedPlaceholder'
+import { findMatches } from '@/lib/editor/search'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
 import nlp from 'compromise'
 
@@ -328,7 +329,23 @@ export function WriteEditor() {
     }
   }, [grammarCheck])
 
-  // ── Search: apply decorations ─────────────────────────────────────────────
+  // ── Search: compute matches from live editor text, apply decorations ─────────
+  const { query: searchQuery } = useSearchStore()
+
+  useEffect(() => {
+    if (!editor) return
+    if (!searchOpen || !searchQuery) {
+      useSearchStore.getState().setMatches([])
+      editor.view.dispatch(editor.state.tr.setMeta(searchKey, DecorationSet.empty))
+      return
+    }
+    const text = editor.getText({ blockSeparator: '\n' })
+    const found = findMatches(text, searchQuery)
+    useSearchStore.getState().setMatches(found)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, searchOpen, searchQuery])
+
+  // Apply decorations whenever matches or currentMatchIndex changes
   useEffect(() => {
     if (!editor) return
     if (!searchOpen || matches.length === 0) {
