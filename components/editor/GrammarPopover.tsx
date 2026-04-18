@@ -140,7 +140,7 @@ export function GrammarPopover({ editor, matches }: Props) {
           onMouseEnter={onEnter}
           onMouseLeave={onLeave}
         >
-          {label}
+          {match.category === 'spelling' ? replacements[0] : label}
         </button>
       )}
 
