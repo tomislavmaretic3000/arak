@@ -137,19 +137,9 @@ export function GrammarPopover({ editor, matches }: Props) {
         </button>
       )}
 
-      {/* Multiple alternatives: show label + chips */}
+      {/* Multiple alternatives: chips only, no label */}
       {multiChips && (
         <>
-          <div style={{
-            fontSize: 12,
-            lineHeight: 1.45,
-            color: 'rgba(255,255,255,0.42)',
-            marginBottom: 8,
-            padding: '5px 9px 0',
-            letterSpacing: '0.01em',
-          }}>
-            {label}
-          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {replacements.map((r) => (
               <button
