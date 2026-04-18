@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
 import type { LTMatch } from '@/lib/editor/languageTool'
+import { useEditorStore } from '@/store/editor'
 
 interface Props {
   editor: Editor
@@ -21,6 +22,15 @@ function buildPosMap(editor: Editor): number[] {
 }
 
 export function GrammarPopover({ editor, matches }: Props) {
+  const theme = useEditorStore((s) => s.theme)
+  const dark  = theme === 'dark'
+
+  // Invert colors in dark mode — light pill on dark canvas
+  const popoverBg = dark ? '#e8e8e4' : '#1a1a18'
+  const textColor = dark ? 'rgba(28,28,26,0.75)' : 'rgba(255,255,255,0.75)'
+  const textHover = dark ? '#1c1c1a' : '#fff'
+  const chipHoverBg = dark ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)'
+
   const [popover, setPopover] = useState<{ match: LTMatch; x: number; y: number } | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -94,7 +104,7 @@ export function GrammarPopover({ editor, matches }: Props) {
     background: 'none',
     border: 'none',
     borderRadius: 100,
-    color: 'rgba(255,255,255,0.75)',
+    color: textColor,
     fontSize: 16,
     fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
     cursor: 'pointer',
@@ -105,12 +115,12 @@ export function GrammarPopover({ editor, matches }: Props) {
   }
 
   const onEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-    e.currentTarget.style.color = '#fff'
+    e.currentTarget.style.background = chipHoverBg
+    e.currentTarget.style.color = textHover
   }
   const onLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.background = 'none'
-    e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+    e.currentTarget.style.color = textColor
   }
 
   return createPortal(
@@ -123,7 +133,7 @@ export function GrammarPopover({ editor, matches }: Props) {
         left: x,
         transform: 'translateX(-50%)',
         zIndex: 150,
-        background: '#1a1a18',
+        background: popoverBg,
         borderRadius: 100,
         padding: 4,
         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
@@ -157,7 +167,7 @@ export function GrammarPopover({ editor, matches }: Props) {
       ))}
 
       {replacements.length === 0 && (
-        <div style={{ padding: '9px 15px', fontSize: 16, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.01em' }}>
+        <div style={{ padding: '9px 15px', fontSize: 16, color: textColor, letterSpacing: '0.01em' }}>
           {label}
         </div>
       )}
