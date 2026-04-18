@@ -90,54 +90,62 @@ export function GrammarPopover({ editor, matches }: Props) {
         left: x,
         transform: 'translateX(-50%)',
         zIndex: 150,
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 2,
         background: '#1a1a18',
-        borderRadius: 100,
-        padding: '4px',
+        borderRadius: 16,
+        padding: '10px 14px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-        whiteSpace: 'nowrap',
+        maxWidth: 300,
+        minWidth: 160,
       }}
     >
-      {suggestions.map((r) => (
-        <button
-          key={r}
-          onMouseDown={(e) => { e.preventDefault(); applyReplacement(r) }}
-          style={{
-            height: 36,
-            padding: '0 12px',
-            display: 'flex',
-            alignItems: 'center',
-            background: 'transparent',
-            border: 'none',
-            borderRadius: 100,
-            color: 'rgba(255,255,255,0.6)',
-            fontSize: 15,
-            fontFamily: 'inherit',
-            cursor: 'pointer',
-            transition: 'background 100ms, color 100ms',
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-            e.currentTarget.style.color = '#fff'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.6)'
-          }}
-        >
-          {r}
-        </button>
-      ))}
+      {/* Description */}
+      <div style={{
+        fontSize: 12,
+        lineHeight: 1.45,
+        color: 'rgba(255,255,255,0.42)',
+        marginBottom: suggestions.length ? 8 : 0,
+        letterSpacing: '0.01em',
+      }}>
+        {match.shortMessage || match.message}
+      </div>
 
-      {suggestions.length === 0 && (
-        <span style={{ height: 36, padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 15, color: 'rgba(255,255,255,0.4)' }}>
-          {match.shortMessage || match.message}
-        </span>
+      {/* Suggestions */}
+      {suggestions.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {suggestions.map((r) => (
+            <button
+              key={r}
+              onMouseDown={(e) => { e.preventDefault(); applyReplacement(r) }}
+              style={{
+                height: 30,
+                padding: '0 10px',
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(255,255,255,0.08)',
+                border: 'none',
+                borderRadius: 100,
+                color: 'rgba(255,255,255,0.75)',
+                fontSize: 14,
+                fontFamily: 'inherit',
+                cursor: 'pointer',
+                transition: 'background 100ms, color 100ms',
+                flexShrink: 0,
+                letterSpacing: '0.01em',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
+                e.currentTarget.style.color = '#fff'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+              }}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
       )}
     </div>,
     document.body
