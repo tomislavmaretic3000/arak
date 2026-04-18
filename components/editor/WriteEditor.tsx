@@ -377,19 +377,28 @@ export function WriteEditor() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, searchOpen, matches, currentMatchIndex])
 
-  // ── Search: scroll to current match (also on first match appearance) ────────
+  // ── Search: scroll to current match via DOM (Lenis-compatible) ──────────────
   useEffect(() => {
     if (!editor || !searchOpen || !matches.length) return
     const m = matches[currentMatchIndex]
     if (!m) return
+
     const posMap = buildSearchPosMap(editor.state)
+    let pmPos: number | null = null
     for (let j = m.start; j < m.end && j < posMap.length; j++) {
-      if (posMap[j] !== null) {
-        editor.commands.setTextSelection(posMap[j]!)
-        editor.commands.scrollIntoView()
-        break
-      }
+      if (posMap[j] !== null) { pmPos = posMap[j]!; break }
     }
+    if (pmPos === null) return
+
+    // Get the actual DOM node at this position and scroll it into view.
+    // editor.commands.scrollIntoView() uses PM's scroller which bypasses Lenis.
+    try {
+      const { node } = editor.view.domAtPos(pmPos)
+      const el = node.nodeType === Node.ELEMENT_NODE
+        ? node as HTMLElement
+        : node.parentElement
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } catch { /* ignore if pos out of range */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, currentMatchIndex, matches, searchOpen])
 
