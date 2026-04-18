@@ -93,7 +93,7 @@ export function GrammarPopover({ editor, matches }: Props) {
     alignItems: 'center',
     background: 'none',
     border: 'none',
-    borderRadius: 15,
+    borderRadius: 100,
     color: 'rgba(255,255,255,0.75)',
     fontSize: 14,
     fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
@@ -124,13 +124,13 @@ export function GrammarPopover({ editor, matches }: Props) {
         transform: 'translateX(-50%)',
         zIndex: 150,
         background: '#1a1a18',
-        borderRadius: 20,
+        borderRadius: 100,
         padding: 4,
         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         display: 'flex',
-        flexWrap: 'wrap',
+        flexWrap: 'nowrap',
         gap: 2,
-        maxWidth: 300,
+        maxWidth: 360,
       }}
     >
       {singleFix && (
