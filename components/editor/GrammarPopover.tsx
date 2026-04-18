@@ -97,39 +97,39 @@ export function GrammarPopover({ editor, matches }: Props) {
         zIndex: 150,
         background: '#1a1a18',
         borderRadius: 16,
-        padding: singleFix ? '5px' : '10px 14px',
+        padding: '5px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
         maxWidth: 300,
         minWidth: 160,
       }}
     >
-      {/* Single fix: message IS the button */}
+      {/* Single fix: message IS the button — same style as multi chips */}
       {singleFix && (
         <button
           onMouseDown={(e) => { e.preventDefault(); applyReplacement(replacements[0]) }}
           style={{
-            display: 'block',
-            width: '100%',
-            padding: '6px 10px',
-            background: 'none',
+            height: 30,
+            padding: '0 10px',
+            display: 'flex',
+            alignItems: 'center',
+            background: 'rgba(255,255,255,0.08)',
             border: 'none',
-            borderRadius: 12,
+            borderRadius: 100,
             color: 'rgba(255,255,255,0.75)',
-            fontSize: 13,
-            lineHeight: 1.4,
+            fontSize: 14,
             fontFamily: 'inherit',
             cursor: 'pointer',
-            textAlign: 'left',
-            letterSpacing: '0.01em',
             transition: 'background 100ms, color 100ms',
+            flexShrink: 0,
+            letterSpacing: '0.01em',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+            e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
             e.currentTarget.style.color = '#fff'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'none'
+            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
             e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
           }}
         >
@@ -145,6 +145,7 @@ export function GrammarPopover({ editor, matches }: Props) {
             lineHeight: 1.45,
             color: 'rgba(255,255,255,0.42)',
             marginBottom: 8,
+            padding: '5px 9px 0',
             letterSpacing: '0.01em',
           }}>
             {label}
@@ -189,10 +190,11 @@ export function GrammarPopover({ editor, matches }: Props) {
       {/* No replacements: info only */}
       {replacements.length === 0 && (
         <div style={{
-          fontSize: 12,
+          fontSize: 14,
           lineHeight: 1.45,
-          color: 'rgba(255,255,255,0.42)',
+          color: 'rgba(255,255,255,0.75)',
           letterSpacing: '0.01em',
+          padding: '5px 9px',
         }}>
           {label}
         </div>
