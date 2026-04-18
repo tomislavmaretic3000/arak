@@ -85,6 +85,34 @@ export function GrammarPopover({ editor, matches }: Props) {
   const singleFix  = replacements.length === 1
   const multiChips = replacements.length > 1
 
+  // Chip button shared style — transparent bg inside the unified pill container
+  const chipStyle: React.CSSProperties = {
+    height: 30,
+    padding: '0 12px',
+    display: 'flex',
+    alignItems: 'center',
+    background: 'none',
+    border: 'none',
+    borderRadius: 15,
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 14,
+    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    cursor: 'pointer',
+    transition: 'background 100ms, color 100ms',
+    flexShrink: 0,
+    letterSpacing: '0.01em',
+    whiteSpace: 'nowrap',
+  }
+
+  const onEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+    e.currentTarget.style.color = '#fff'
+  }
+  const onLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.background = 'none'
+    e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+  }
+
   return createPortal(
     <div
       ref={ref}
@@ -96,96 +124,40 @@ export function GrammarPopover({ editor, matches }: Props) {
         transform: 'translateX(-50%)',
         zIndex: 150,
         background: '#1a1a18',
-        borderRadius: 16,
-        padding: '5px',
+        borderRadius: 20,
+        padding: 4,
         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-        fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 2,
         maxWidth: 300,
-        minWidth: 160,
       }}
     >
-      {/* Single fix: message IS the button — same style as multi chips */}
       {singleFix && (
         <button
           onMouseDown={(e) => { e.preventDefault(); applyReplacement(replacements[0]) }}
-          style={{
-            height: 30,
-            padding: '0 10px',
-            display: 'flex',
-            alignItems: 'center',
-            background: 'rgba(255,255,255,0.08)',
-            border: 'none',
-            borderRadius: 100,
-            color: 'rgba(255,255,255,0.75)',
-            fontSize: 14,
-            fontFamily: 'inherit',
-            cursor: 'pointer',
-            transition: 'background 100ms, color 100ms',
-            flexShrink: 0,
-            letterSpacing: '0.01em',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
-            e.currentTarget.style.color = '#fff'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
-          }}
+          style={chipStyle}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
         >
           {label}
         </button>
       )}
 
-      {/* Multiple alternatives: chips only, no label */}
-      {multiChips && (
-        <>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {replacements.map((r) => (
-              <button
-                key={r}
-                onMouseDown={(e) => { e.preventDefault(); applyReplacement(r) }}
-                style={{
-                  height: 30,
-                  padding: '0 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  background: 'rgba(255,255,255,0.08)',
-                  border: 'none',
-                  borderRadius: 100,
-                  color: 'rgba(255,255,255,0.75)',
-                  fontSize: 14,
-                  fontFamily: 'inherit',
-                  cursor: 'pointer',
-                  transition: 'background 100ms, color 100ms',
-                  flexShrink: 0,
-                  letterSpacing: '0.01em',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
-                  e.currentTarget.style.color = '#fff'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
-                }}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+      {multiChips && replacements.map((r) => (
+        <button
+          key={r}
+          onMouseDown={(e) => { e.preventDefault(); applyReplacement(r) }}
+          style={chipStyle}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+        >
+          {r}
+        </button>
+      ))}
 
-      {/* No replacements: info only */}
       {replacements.length === 0 && (
-        <div style={{
-          fontSize: 14,
-          lineHeight: 1.45,
-          color: 'rgba(255,255,255,0.75)',
-          letterSpacing: '0.01em',
-          padding: '5px 9px',
-        }}>
+        <div style={{ padding: '6px 12px', fontSize: 14, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.01em' }}>
           {label}
         </div>
       )}
