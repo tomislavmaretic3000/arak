@@ -87,15 +87,15 @@ export function GrammarPopover({ editor, matches }: Props) {
 
   // Chip button shared style — transparent bg inside the unified pill container
   const chipStyle: React.CSSProperties = {
-    height: 32,
-    padding: '0 13px',
+    height: 36,
+    padding: '0 15px',
     display: 'flex',
     alignItems: 'center',
     background: 'none',
     border: 'none',
     borderRadius: 100,
     color: 'rgba(255,255,255,0.75)',
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
     cursor: 'pointer',
     transition: 'background 100ms, color 100ms',
@@ -157,7 +157,7 @@ export function GrammarPopover({ editor, matches }: Props) {
       ))}
 
       {replacements.length === 0 && (
-        <div style={{ padding: '7px 13px', fontSize: 15, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.01em' }}>
+        <div style={{ padding: '9px 15px', fontSize: 16, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.01em' }}>
           {label}
         </div>
       )}
