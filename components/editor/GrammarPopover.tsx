@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
+import type { EditorView } from '@tiptap/pm/view'
+import type { EditorState } from '@tiptap/pm/state'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { LTMatch } from '@/lib/editor/languageTool'
 import { useEditorStore } from '@/store/editor'
 
@@ -11,9 +14,9 @@ interface Props {
   matches: LTMatch[]
 }
 
-function buildPosMap(editor: Editor): number[] {
+function buildPosMap(state: EditorState): number[] {
   const map: number[] = []
-  editor.state.doc.forEach((node, offset) => {
+  state.doc.forEach((node, offset) => {
     if (!node.isTextblock) return
     const pmStart = offset + 1
     for (let i = 0; i < node.textContent.length; i++) map.push(pmStart + i)
@@ -29,9 +32,9 @@ function matchAtPos(pos: number, matches: LTMatch[], posMap: number[]): LTMatch 
   }) ?? null
 }
 
-function spanForMatch(editor: Editor, match: LTMatch, posMap: number[]): HTMLElement | null {
+function spanForMatch(view: EditorView, match: LTMatch, posMap: number[]): HTMLElement | null {
   try {
-    const { node } = editor.view.domAtPos(posMap[match.offset])
+    const { node } = view.domAtPos(posMap[match.offset])
     const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as HTMLElement
     return el?.closest('.lt-spelling, .lt-grammar, .lt-style, .lt-other') as HTMLElement | null
   } catch { return null }
@@ -48,10 +51,11 @@ export function GrammarPopover({ editor, matches }: Props) {
 
   const [popover, setPopover]   = useState<{ match: LTMatch; x: number; y: number } | null>(null)
   const [focusIdx, setFocusIdx] = useState(0)
-  const ref         = useRef<HTMLDivElement>(null)
-  const btnRefs     = useRef<(HTMLButtonElement | null)[]>([])
-  // Track which match offset was dismissed via Escape — don't re-open until cursor leaves
-  const dismissedRef = useRef<number | null>(null)
+  const ref          = useRef<HTMLDivElement>(null)
+  const btnRefs      = useRef<(HTMLButtonElement | null)[]>([])
+  const dismissedRef = useRef<number | null>(null) // match.offset dismissed via Escape
+  const matchesRef   = useRef(matches)
+  useEffect(() => { matchesRef.current = matches }, [matches])
 
   // ── Click on underlined word ──────────────────────────────────────────────
   useEffect(() => {
@@ -64,11 +68,10 @@ export function GrammarPopover({ editor, matches }: Props) {
       const result = editor.view.posAtCoords({ left: e.clientX, top: e.clientY })
       if (!result) { setPopover(null); return }
 
-      const posMap = buildPosMap(editor)
-      const match = matchAtPos(result.pos, matches, posMap)
+      const posMap = buildPosMap(editor.state)
+      const match  = matchAtPos(result.pos, matches, posMap)
       if (!match) { setPopover(null); return }
 
-      // Click always overrides a previous dismiss
       dismissedRef.current = null
       const rect = span.getBoundingClientRect()
       setPopover({ match, x: rect.left + rect.width / 2, y: rect.bottom + 6 })
@@ -80,44 +83,56 @@ export function GrammarPopover({ editor, matches }: Props) {
     return () => dom.removeEventListener('click', onClick)
   }, [editor, matches])
 
-  // ── Caret position tracking ───────────────────────────────────────────────
+  // ── Caret detection via PM plugin update() ────────────────────────────────
+  // PM plugin view.update() fires on every transaction (incl. pure selection
+  // changes), which is more reliable than TipTap's selectionUpdate event.
   useEffect(() => {
-    const handler = () => {
-      const { selection } = editor.state
-      if (!selection.empty) { setPopover(null); return } // don't show on text selection
+    const pluginKey = new PluginKey('grammarCaretDetect')
+    const plugin = new Plugin({
+      key: pluginKey,
+      view() {
+        return {
+          update(view: EditorView) {
+            const { selection } = view.state
+            if (!selection.empty) { setPopover(null); return }
 
-      const posMap = buildPosMap(editor)
-      const match  = matchAtPos(selection.anchor, matches, posMap)
+            const posMap = buildPosMap(view.state)
+            const match  = matchAtPos(selection.anchor, matchesRef.current, posMap)
 
-      if (!match) {
-        dismissedRef.current = null // cursor left all matches — reset dismiss guard
-        setPopover(null)
-        return
-      }
+            if (!match) {
+              dismissedRef.current = null
+              setPopover(null)
+              return
+            }
 
-      // Cursor moved to a different match — reset dismiss guard
-      if (dismissedRef.current !== null && dismissedRef.current !== match.offset) {
-        dismissedRef.current = null
-      }
+            // Reset dismiss guard when cursor moves to a different match
+            if (dismissedRef.current !== null && dismissedRef.current !== match.offset) {
+              dismissedRef.current = null
+            }
+            if (dismissedRef.current === match.offset) return
 
-      // If this match was dismissed via Escape, don't reopen
-      if (dismissedRef.current === match.offset) return
+            const span = spanForMatch(view, match, posMap)
+            if (!span) return
 
-      const span = spanForMatch(editor, match, posMap)
-      if (!span) return
+            const rect = span.getBoundingClientRect()
+            setPopover((prev) => {
+              if (prev?.match.offset === match.offset) return prev
+              setFocusIdx(0)
+              return { match, x: rect.left + rect.width / 2, y: rect.bottom + 6 }
+            })
+          },
+        }
+      },
+    })
 
-      const rect = span.getBoundingClientRect()
-      setPopover((prev) => {
-        // Avoid flickering if same match already shown
-        if (prev?.match.offset === match.offset) return prev
-        setFocusIdx(0)
-        return { match, x: rect.left + rect.width / 2, y: rect.bottom + 6 }
-      })
+    const { state } = editor.view
+    editor.view.updateState(state.reconfigure({ plugins: [...state.plugins, plugin] }))
+    return () => {
+      const s = editor.view.state
+      editor.view.updateState(s.reconfigure({ plugins: s.plugins.filter((p) => p !== plugin) }))
     }
-
-    editor.on('selectionUpdate', handler)
-    return () => { editor.off('selectionUpdate', handler) }
-  }, [editor, matches])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor])
 
   // ── Auto-focus first chip when popover opens ─────────────────────────────
   useEffect(() => {
@@ -160,7 +175,7 @@ export function GrammarPopover({ editor, matches }: Props) {
   const applyReplacement = (replacement: string) => {
     if (!popover) return
     const { match } = popover
-    const posMap = buildPosMap(editor)
+    const posMap = buildPosMap(editor.state)
     const end = match.offset + match.length
     if (match.offset >= posMap.length || end > posMap.length) { setPopover(null); return }
     const from = posMap[match.offset]
