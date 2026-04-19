@@ -51,45 +51,43 @@ export function GrammarPopover({ editor, matches }: Props) {
   const [popover, setPopover]   = useState<{ match: LTMatch; x: number; y: number } | null>(null)
   const [focusIdx, setFocusIdx] = useState(0)
   const ref          = useRef<HTMLDivElement>(null)
-  const btnRefs      = useRef<(HTMLButtonElement | null)[]>([])
-  const dismissedRef = useRef<number | null>(null) // match.offset dismissed via Escape
-  const matchesRef   = useRef(matches)
+
+  // Stable refs to avoid stale closures in event handlers
+  const matchesRef    = useRef(matches)
+  const popoverRef    = useRef(popover)
+  const focusIdxRef   = useRef(focusIdx)
+  const dismissedRef  = useRef<number | null>(null)
+  const chipsRef      = useRef<{ label: string; value: string }[]>([])
+
   useEffect(() => { matchesRef.current = matches }, [matches])
+  useEffect(() => { popoverRef.current = popover }, [popover])
+  useEffect(() => { focusIdxRef.current = focusIdx }, [focusIdx])
 
-  // ── Click on underlined word ──────────────────────────────────────────────
+  // ── Apply replacement (stable via ref) ───────────────────────────────────
+  const applyRef = useRef((replacement: string, match: LTMatch) => {
+    const posMap = buildPosMap(editor.state)
+    const end = match.offset + match.length
+    if (match.offset >= posMap.length || end > posMap.length) { setPopover(null); return }
+    const from = posMap[match.offset]
+    const to   = posMap[end - 1] + 1
+    editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, replacement).run()
+    setPopover(null)
+  })
   useEffect(() => {
-    const dom = editor.view.dom as HTMLElement
-
-    const onClick = (e: MouseEvent) => {
-      const span = (e.target as HTMLElement).closest('.lt-spelling, .lt-grammar, .lt-style, .lt-other') as HTMLElement | null
-      if (!span) { setPopover(null); return }
-
-      const result = editor.view.posAtCoords({ left: e.clientX, top: e.clientY })
-      if (!result) { setPopover(null); return }
-
+    applyRef.current = (replacement: string, match: LTMatch) => {
       const posMap = buildPosMap(editor.state)
-      const match  = matchAtPos(result.pos, matches, posMap)
-      if (!match) { setPopover(null); return }
-
-      dismissedRef.current = null
-      const rect = span.getBoundingClientRect()
-      setPopover({ match, x: rect.left + rect.width / 2, y: rect.bottom + 6 })
-      setFocusIdx(0)
-      e.stopPropagation()
+      const end = match.offset + match.length
+      if (match.offset >= posMap.length || end > posMap.length) { setPopover(null); return }
+      const from = posMap[match.offset]
+      const to   = posMap[end - 1] + 1
+      editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, replacement).run()
+      setPopover(null)
     }
+  }, [editor])
 
-    dom.addEventListener('click', onClick)
-    return () => dom.removeEventListener('click', onClick)
-  }, [editor, matches])
-
-  // ── Caret detection via native selectionchange ────────────────────────────
-  // document.selectionchange fires on every caret move — mouse AND keyboard —
-  // making it the most reliable hook for tracking cursor position.
+  // ── Transaction listener — fires after every PM state change ─────────────
   useEffect(() => {
-    const handler = () => {
-      // Only act when the editor has focus
-      if (!editor.view.hasFocus()) return
-
+    const onTransaction = () => {
       const { selection } = editor.state
       if (!selection.empty) { setPopover(null); return }
 
@@ -118,22 +116,73 @@ export function GrammarPopover({ editor, matches }: Props) {
       })
     }
 
-    document.addEventListener('selectionchange', handler)
-    return () => document.removeEventListener('selectionchange', handler)
+    editor.on('transaction', onTransaction)
+    return () => { editor.off('transaction', onTransaction) }
   }, [editor])
 
-  // ── Auto-focus first chip when popover opens ─────────────────────────────
+  // ── Click on underlined word ──────────────────────────────────────────────
   useEffect(() => {
-    if (!popover) return
-    const id = setTimeout(() => btnRefs.current[0]?.focus(), 30)
-    return () => clearTimeout(id)
-  }, [popover])
+    const dom = editor.view.dom as HTMLElement
 
+    const onClick = (e: MouseEvent) => {
+      const span = (e.target as HTMLElement).closest('.lt-spelling, .lt-grammar, .lt-style, .lt-other') as HTMLElement | null
+      if (!span) { setPopover(null); return }
+
+      const result = editor.view.posAtCoords({ left: e.clientX, top: e.clientY })
+      if (!result) { setPopover(null); return }
+
+      const posMap = buildPosMap(editor.state)
+      const match  = matchAtPos(result.pos, matchesRef.current, posMap)
+      if (!match) { setPopover(null); return }
+
+      dismissedRef.current = null
+      const rect = span.getBoundingClientRect()
+      setPopover({ match, x: rect.left + rect.width / 2, y: rect.bottom + 6 })
+      setFocusIdx(0)
+      e.stopPropagation()
+    }
+
+    dom.addEventListener('click', onClick)
+    return () => dom.removeEventListener('click', onClick)
+  }, [editor])
+
+  // ── Keyboard — intercept on editor DOM (capture) so editor keeps focus ───
+  // Editor retains focus; we intercept arrows/enter/escape before PM sees them.
   useEffect(() => {
-    btnRefs.current[focusIdx]?.focus()
-  }, [focusIdx])
+    const onKeyDown = (e: KeyboardEvent) => {
+      const current = popoverRef.current
+      if (!current) return
 
-  // ── Click outside to close ────────────────────────────────────────────────
+      const chips = chipsRef.current
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        dismissedRef.current = current.match.offset
+        setPopover(null)
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        if (chips.length < 2) return
+        e.preventDefault()
+        e.stopPropagation()
+        setFocusIdx((i) => Math.min(i + 1, chips.length - 1))
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        if (chips.length < 2) return
+        e.preventDefault()
+        e.stopPropagation()
+        setFocusIdx((i) => Math.max(i - 1, 0))
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        if (chips.length === 0) return
+        e.preventDefault()
+        e.stopPropagation()
+        const chip = chips[focusIdxRef.current] ?? chips[0]
+        applyRef.current(chip.value, current.match)
+      }
+    }
+
+    editor.view.dom.addEventListener('keydown', onKeyDown, true) // capture
+    return () => editor.view.dom.removeEventListener('keydown', onKeyDown, true)
+  }, [editor])
+
+  // ── Click outside ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!popover) return
     const onDown = (e: MouseEvent) => {
@@ -143,35 +192,6 @@ export function GrammarPopover({ editor, matches }: Props) {
     return () => window.removeEventListener('mousedown', onDown)
   }, [popover])
 
-  // ── Keyboard navigation ───────────────────────────────────────────────────
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    const count = btnRefs.current.filter(Boolean).length
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      if (popover) dismissedRef.current = popover.match.offset
-      setPopover(null)
-      editor.view.focus()
-    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-      e.preventDefault()
-      setFocusIdx((i) => Math.min(i + 1, count - 1))
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault()
-      setFocusIdx((i) => Math.max(i - 1, 0))
-    }
-  }
-
-  const applyReplacement = (replacement: string) => {
-    if (!popover) return
-    const { match } = popover
-    const posMap = buildPosMap(editor.state)
-    const end = match.offset + match.length
-    if (match.offset >= posMap.length || end > posMap.length) { setPopover(null); return }
-    const from = posMap[match.offset]
-    const to   = posMap[end - 1] + 1
-    editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, replacement).run()
-    setPopover(null)
-  }
-
   if (!popover) return null
 
   const { match, x, y } = popover
@@ -179,6 +199,15 @@ export function GrammarPopover({ editor, matches }: Props) {
   const replacements = match.replacements.slice(0, 5)
   const singleFix    = replacements.length === 1
   const multiChips   = replacements.length > 1
+
+  const chips: { label: string; value: string }[] = singleFix
+    ? [{ label: match.category === 'spelling' ? replacements[0] : label, value: replacements[0] }]
+    : multiChips
+      ? replacements.map((r) => ({ label: r, value: r }))
+      : []
+
+  // Keep chipsRef in sync for the keydown handler
+  chipsRef.current = chips
 
   const chipStyle: React.CSSProperties = {
     height: 36,
@@ -201,27 +230,21 @@ export function GrammarPopover({ editor, matches }: Props) {
 
   const focusedStyle: React.CSSProperties = { ...chipStyle, background: chipHoverBg, color: textHover }
 
-  const onEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const onMouseEnter = (e: React.MouseEvent<HTMLButtonElement>, i: number) => {
+    setFocusIdx(i)
     e.currentTarget.style.background = chipHoverBg
     e.currentTarget.style.color = textHover
   }
-  const onLeave = (e: React.MouseEvent<HTMLButtonElement>, idx: number) => {
-    if (focusIdx === idx) return
+  const onMouseLeave = (e: React.MouseEvent<HTMLButtonElement>, i: number) => {
+    if (focusIdx === i) return
     e.currentTarget.style.background = 'none'
     e.currentTarget.style.color = textColor
   }
-
-  const chips: { label: string; value: string }[] = singleFix
-    ? [{ label: match.category === 'spelling' ? replacements[0] : label, value: replacements[0] }]
-    : multiChips
-      ? replacements.map((r) => ({ label: r, value: r }))
-      : []
 
   return createPortal(
     <div
       ref={ref}
       className="format-toolbar-enter"
-      onKeyDown={onKeyDown}
       style={{
         position: 'fixed',
         top: y,
@@ -241,18 +264,16 @@ export function GrammarPopover({ editor, matches }: Props) {
       {chips.map((chip, i) => (
         <button
           key={chip.value}
-          ref={(el) => { btnRefs.current[i] = el }}
-          onClick={() => applyReplacement(chip.value)}
-          onFocus={() => setFocusIdx(i)}
+          onMouseDown={(e) => { e.preventDefault(); applyRef.current(chip.value, match) }}
           style={focusIdx === i ? focusedStyle : chipStyle}
-          onMouseEnter={(e) => { setFocusIdx(i); onEnter(e) }}
-          onMouseLeave={(e) => onLeave(e, i)}
+          onMouseEnter={(e) => onMouseEnter(e, i)}
+          onMouseLeave={(e) => onMouseLeave(e, i)}
         >
           {chip.label}
         </button>
       ))}
 
-      {replacements.length === 0 && (
+      {chips.length === 0 && (
         <div style={{ padding: '9px 15px', fontSize: 16, color: textColor, letterSpacing: '0.01em' }}>
           {label}
         </div>
