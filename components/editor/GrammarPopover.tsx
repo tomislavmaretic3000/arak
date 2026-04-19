@@ -25,22 +25,21 @@ export function GrammarPopover({ editor, matches }: Props) {
   const theme = useEditorStore((s) => s.theme)
   const dark  = theme === 'dark'
 
-  // Invert colors in dark mode — light pill on dark canvas
-  const popoverBg = dark ? '#e8e8e4' : '#1a1a18'
-  const textColor = dark ? 'rgba(28,28,26,0.75)' : 'rgba(255,255,255,0.75)'
-  const textHover = dark ? '#1c1c1a' : '#fff'
+  const popoverBg   = dark ? '#e8e8e4' : '#1a1a18'
+  const textColor   = dark ? 'rgba(28,28,26,0.75)' : 'rgba(255,255,255,0.75)'
+  const textHover   = dark ? '#1c1c1a' : '#fff'
   const chipHoverBg = dark ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)'
 
-  const [popover, setPopover] = useState<{ match: LTMatch; x: number; y: number } | null>(null)
-  const ref = useRef<HTMLDivElement>(null)
+  const [popover, setPopover]   = useState<{ match: LTMatch; x: number; y: number } | null>(null)
+  const [focusIdx, setFocusIdx] = useState(0)
+  const ref      = useRef<HTMLDivElement>(null)
+  const btnRefs  = useRef<(HTMLButtonElement | null)[]>([])
 
   useEffect(() => {
     const dom = editor.view.dom as HTMLElement
 
     const onClick = (e: MouseEvent) => {
-      // TipTap decorations render real <span> elements — read their rect directly
       const span = (e.target as HTMLElement).closest('.lt-spelling, .lt-grammar, .lt-style, .lt-other') as HTMLElement | null
-
       if (!span) { setPopover(null); return }
 
       const result = editor.view.posAtCoords({ left: e.clientX, top: e.clientY })
@@ -57,12 +56,25 @@ export function GrammarPopover({ editor, matches }: Props) {
 
       const rect = span.getBoundingClientRect()
       setPopover({ match, x: rect.left + rect.width / 2, y: rect.bottom + 6 })
+      setFocusIdx(0)
       e.stopPropagation()
     }
 
     dom.addEventListener('click', onClick)
     return () => dom.removeEventListener('click', onClick)
   }, [editor, matches])
+
+  // Focus first button when popover opens
+  useEffect(() => {
+    if (!popover) return
+    const id = setTimeout(() => btnRefs.current[0]?.focus(), 30)
+    return () => clearTimeout(id)
+  }, [popover])
+
+  // Move focus when focusIdx changes
+  useEffect(() => {
+    btnRefs.current[focusIdx]?.focus()
+  }, [focusIdx])
 
   useEffect(() => {
     if (!popover) return
@@ -72,6 +84,23 @@ export function GrammarPopover({ editor, matches }: Props) {
     window.addEventListener('mousedown', onDown)
     return () => window.removeEventListener('mousedown', onDown)
   }, [popover])
+
+  // Keyboard handler on the container
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const count = btnRefs.current.filter(Boolean).length
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      setPopover(null)
+      editor.view.focus()
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      setFocusIdx((i) => Math.min(i + 1, count - 1))
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      setFocusIdx((i) => Math.max(i - 1, 0))
+    }
+    // Enter is handled natively by the focused button's onClick
+  }
 
   const applyReplacement = (replacement: string) => {
     if (!popover) return
@@ -88,14 +117,11 @@ export function GrammarPopover({ editor, matches }: Props) {
   if (!popover) return null
 
   const { match, x, y } = popover
-  const label       = match.shortMessage || match.message
+  const label        = match.shortMessage || match.message
   const replacements = match.replacements.slice(0, 5)
-  // Single replacement: show the message as the action button (don't show raw value)
-  // Multiple replacements: show message as label, chips let user pick which alternative
-  const singleFix  = replacements.length === 1
-  const multiChips = replacements.length > 1
+  const singleFix    = replacements.length === 1
+  const multiChips   = replacements.length > 1
 
-  // Chip button shared style — transparent bg inside the unified pill container
   const chipStyle: React.CSSProperties = {
     height: 36,
     padding: '0 15px',
@@ -112,21 +138,36 @@ export function GrammarPopover({ editor, matches }: Props) {
     flexShrink: 0,
     letterSpacing: '0.01em',
     whiteSpace: 'nowrap',
+    outline: 'none',
+  }
+
+  const focusedStyle: React.CSSProperties = {
+    ...chipStyle,
+    background: chipHoverBg,
+    color: textHover,
   }
 
   const onEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.background = chipHoverBg
     e.currentTarget.style.color = textHover
   }
-  const onLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const onLeave = (e: React.MouseEvent<HTMLButtonElement>, idx: number) => {
+    if (focusIdx === idx) return // keep highlight if still focused
     e.currentTarget.style.background = 'none'
     e.currentTarget.style.color = textColor
   }
+
+  const chips: { label: string; value: string }[] = singleFix
+    ? [{ label: match.category === 'spelling' ? replacements[0] : label, value: replacements[0] }]
+    : multiChips
+      ? replacements.map((r) => ({ label: r, value: r }))
+      : []
 
   return createPortal(
     <div
       ref={ref}
       className="format-toolbar-enter"
+      onKeyDown={onKeyDown}
       style={{
         position: 'fixed',
         top: y,
@@ -143,26 +184,17 @@ export function GrammarPopover({ editor, matches }: Props) {
         maxWidth: 360,
       }}
     >
-      {singleFix && (
+      {chips.map((chip, i) => (
         <button
-          onMouseDown={(e) => { e.preventDefault(); applyReplacement(replacements[0]) }}
-          style={chipStyle}
-          onMouseEnter={onEnter}
-          onMouseLeave={onLeave}
+          key={chip.value}
+          ref={(el) => { btnRefs.current[i] = el }}
+          onClick={() => applyReplacement(chip.value)}
+          onFocus={() => setFocusIdx(i)}
+          style={focusIdx === i ? focusedStyle : chipStyle}
+          onMouseEnter={(e) => { setFocusIdx(i); onEnter(e) }}
+          onMouseLeave={(e) => onLeave(e, i)}
         >
-          {match.category === 'spelling' ? replacements[0] : label}
-        </button>
-      )}
-
-      {multiChips && replacements.map((r) => (
-        <button
-          key={r}
-          onMouseDown={(e) => { e.preventDefault(); applyReplacement(r) }}
-          style={chipStyle}
-          onMouseEnter={onEnter}
-          onMouseLeave={onLeave}
-        >
-          {r}
+          {chip.label}
         </button>
       ))}
 
