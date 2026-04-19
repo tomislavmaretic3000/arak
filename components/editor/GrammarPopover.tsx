@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
 import type { EditorView } from '@tiptap/pm/view'
 import type { EditorState } from '@tiptap/pm/state'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { LTMatch } from '@/lib/editor/languageTool'
 import { useEditorStore } from '@/store/editor'
 
@@ -83,55 +82,44 @@ export function GrammarPopover({ editor, matches }: Props) {
     return () => dom.removeEventListener('click', onClick)
   }, [editor, matches])
 
-  // ── Caret detection via PM plugin update() ────────────────────────────────
-  // PM plugin view.update() fires on every transaction (incl. pure selection
-  // changes), which is more reliable than TipTap's selectionUpdate event.
+  // ── Caret detection via native selectionchange ────────────────────────────
+  // document.selectionchange fires on every caret move — mouse AND keyboard —
+  // making it the most reliable hook for tracking cursor position.
   useEffect(() => {
-    const pluginKey = new PluginKey('grammarCaretDetect')
-    const plugin = new Plugin({
-      key: pluginKey,
-      view() {
-        return {
-          update(view: EditorView) {
-            const { selection } = view.state
-            if (!selection.empty) { setPopover(null); return }
+    const handler = () => {
+      // Only act when the editor has focus
+      if (!editor.view.hasFocus()) return
 
-            const posMap = buildPosMap(view.state)
-            const match  = matchAtPos(selection.anchor, matchesRef.current, posMap)
+      const { selection } = editor.state
+      if (!selection.empty) { setPopover(null); return }
 
-            if (!match) {
-              dismissedRef.current = null
-              setPopover(null)
-              return
-            }
+      const posMap = buildPosMap(editor.state)
+      const match  = matchAtPos(selection.anchor, matchesRef.current, posMap)
 
-            // Reset dismiss guard when cursor moves to a different match
-            if (dismissedRef.current !== null && dismissedRef.current !== match.offset) {
-              dismissedRef.current = null
-            }
-            if (dismissedRef.current === match.offset) return
+      if (!match) {
+        dismissedRef.current = null
+        setPopover(null)
+        return
+      }
 
-            const span = spanForMatch(view, match, posMap)
-            if (!span) return
+      if (dismissedRef.current !== null && dismissedRef.current !== match.offset) {
+        dismissedRef.current = null
+      }
+      if (dismissedRef.current === match.offset) return
 
-            const rect = span.getBoundingClientRect()
-            setPopover((prev) => {
-              if (prev?.match.offset === match.offset) return prev
-              setFocusIdx(0)
-              return { match, x: rect.left + rect.width / 2, y: rect.bottom + 6 }
-            })
-          },
-        }
-      },
-    })
+      const span = spanForMatch(editor.view, match, posMap)
+      if (!span) return
 
-    const { state } = editor.view
-    editor.view.updateState(state.reconfigure({ plugins: [...state.plugins, plugin] }))
-    return () => {
-      const s = editor.view.state
-      editor.view.updateState(s.reconfigure({ plugins: s.plugins.filter((p) => p !== plugin) }))
+      const rect = span.getBoundingClientRect()
+      setPopover((prev) => {
+        if (prev?.match.offset === match.offset) return prev
+        setFocusIdx(0)
+        return { match, x: rect.left + rect.width / 2, y: rect.bottom + 6 }
+      })
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    document.addEventListener('selectionchange', handler)
+    return () => document.removeEventListener('selectionchange', handler)
   }, [editor])
 
   // ── Auto-focus first chip when popover opens ─────────────────────────────
