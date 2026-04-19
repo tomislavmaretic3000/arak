@@ -128,7 +128,7 @@ body {
 .lt-other {
   text-decoration: underline;
   text-decoration-style: dotted;
-  text-decoration-color: rgba(130, 130, 120, 0.55);
+  text-decoration-color: rgba(130, 130, 120, 0.85);
   text-underline-offset: 2px;
   cursor: pointer;
 }
