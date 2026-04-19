@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
 import type { EditorView } from '@tiptap/pm/view'
@@ -50,6 +50,7 @@ export function GrammarPopover({ editor, matches }: Props) {
 
   const [popover, setPopover]   = useState<{ match: LTMatch; x: number; y: number } | null>(null)
   const [focusIdx, setFocusIdx] = useState(0)
+  const [clampedX, setClampedX] = useState<number | null>(null)
   const ref          = useRef<HTMLDivElement>(null)
 
   // Stable refs to avoid stale closures in event handlers
@@ -192,6 +193,17 @@ export function GrammarPopover({ editor, matches }: Props) {
     return () => window.removeEventListener('mousedown', onDown)
   }, [popover])
 
+  // ── Clamp to container bounds (runs before paint, no flash) ───────────────
+  useLayoutEffect(() => {
+    if (!popover || !ref.current) { setClampedX(null); return }
+    const popW      = ref.current.offsetWidth
+    const container = editor.view.dom.getBoundingClientRect()
+    const pad       = 8
+    const min       = container.left + popW / 2 + pad
+    const max       = container.right - popW / 2 - pad
+    setClampedX(Math.min(Math.max(popover.x, min), max))
+  }, [popover, editor])
+
   if (!popover) return null
 
   const { match, x, y } = popover
@@ -248,7 +260,7 @@ export function GrammarPopover({ editor, matches }: Props) {
       style={{
         position: 'fixed',
         top: y,
-        left: x,
+        left: clampedX ?? x,
         transform: 'translateX(-50%)',
         zIndex: 150,
         background: popoverBg,
@@ -259,6 +271,7 @@ export function GrammarPopover({ editor, matches }: Props) {
         flexWrap: 'nowrap',
         gap: 2,
         maxWidth: 360,
+        visibility: clampedX === null ? 'hidden' : 'visible',
       }}
     >
       {chips.map((chip, i) => (
