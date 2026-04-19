@@ -21,6 +21,22 @@ function buildPosMap(editor: Editor): number[] {
   return map
 }
 
+function matchAtPos(pos: number, matches: LTMatch[], posMap: number[]): LTMatch | null {
+  return matches.find((m) => {
+    const end = m.offset + m.length
+    if (m.offset >= posMap.length || end > posMap.length) return false
+    return pos >= posMap[m.offset] && pos <= posMap[end - 1] + 1
+  }) ?? null
+}
+
+function spanForMatch(editor: Editor, match: LTMatch, posMap: number[]): HTMLElement | null {
+  try {
+    const { node } = editor.view.domAtPos(posMap[match.offset])
+    const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as HTMLElement
+    return el?.closest('.lt-spelling, .lt-grammar, .lt-style, .lt-other') as HTMLElement | null
+  } catch { return null }
+}
+
 export function GrammarPopover({ editor, matches }: Props) {
   const theme = useEditorStore((s) => s.theme)
   const dark  = theme === 'dark'
@@ -32,9 +48,12 @@ export function GrammarPopover({ editor, matches }: Props) {
 
   const [popover, setPopover]   = useState<{ match: LTMatch; x: number; y: number } | null>(null)
   const [focusIdx, setFocusIdx] = useState(0)
-  const ref      = useRef<HTMLDivElement>(null)
-  const btnRefs  = useRef<(HTMLButtonElement | null)[]>([])
+  const ref         = useRef<HTMLDivElement>(null)
+  const btnRefs     = useRef<(HTMLButtonElement | null)[]>([])
+  // Track which match offset was dismissed via Escape — don't re-open until cursor leaves
+  const dismissedRef = useRef<number | null>(null)
 
+  // ── Click on underlined word ──────────────────────────────────────────────
   useEffect(() => {
     const dom = editor.view.dom as HTMLElement
 
@@ -46,14 +65,11 @@ export function GrammarPopover({ editor, matches }: Props) {
       if (!result) { setPopover(null); return }
 
       const posMap = buildPosMap(editor)
-      const match = matches.find((m) => {
-        const end = m.offset + m.length
-        if (m.offset >= posMap.length || end > posMap.length) return false
-        return result.pos >= posMap[m.offset] && result.pos < posMap[end - 1] + 1
-      }) ?? null
-
+      const match = matchAtPos(result.pos, matches, posMap)
       if (!match) { setPopover(null); return }
 
+      // Click always overrides a previous dismiss
+      dismissedRef.current = null
       const rect = span.getBoundingClientRect()
       setPopover({ match, x: rect.left + rect.width / 2, y: rect.bottom + 6 })
       setFocusIdx(0)
@@ -64,18 +80,57 @@ export function GrammarPopover({ editor, matches }: Props) {
     return () => dom.removeEventListener('click', onClick)
   }, [editor, matches])
 
-  // Focus first button when popover opens
+  // ── Caret position tracking ───────────────────────────────────────────────
+  useEffect(() => {
+    const handler = () => {
+      const { selection } = editor.state
+      if (!selection.empty) { setPopover(null); return } // don't show on text selection
+
+      const posMap = buildPosMap(editor)
+      const match  = matchAtPos(selection.anchor, matches, posMap)
+
+      if (!match) {
+        dismissedRef.current = null // cursor left all matches — reset dismiss guard
+        setPopover(null)
+        return
+      }
+
+      // Cursor moved to a different match — reset dismiss guard
+      if (dismissedRef.current !== null && dismissedRef.current !== match.offset) {
+        dismissedRef.current = null
+      }
+
+      // If this match was dismissed via Escape, don't reopen
+      if (dismissedRef.current === match.offset) return
+
+      const span = spanForMatch(editor, match, posMap)
+      if (!span) return
+
+      const rect = span.getBoundingClientRect()
+      setPopover((prev) => {
+        // Avoid flickering if same match already shown
+        if (prev?.match.offset === match.offset) return prev
+        setFocusIdx(0)
+        return { match, x: rect.left + rect.width / 2, y: rect.bottom + 6 }
+      })
+    }
+
+    editor.on('selectionUpdate', handler)
+    return () => { editor.off('selectionUpdate', handler) }
+  }, [editor, matches])
+
+  // ── Auto-focus first chip when popover opens ─────────────────────────────
   useEffect(() => {
     if (!popover) return
     const id = setTimeout(() => btnRefs.current[0]?.focus(), 30)
     return () => clearTimeout(id)
   }, [popover])
 
-  // Move focus when focusIdx changes
   useEffect(() => {
     btnRefs.current[focusIdx]?.focus()
   }, [focusIdx])
 
+  // ── Click outside to close ────────────────────────────────────────────────
   useEffect(() => {
     if (!popover) return
     const onDown = (e: MouseEvent) => {
@@ -85,11 +140,12 @@ export function GrammarPopover({ editor, matches }: Props) {
     return () => window.removeEventListener('mousedown', onDown)
   }, [popover])
 
-  // Keyboard handler on the container
+  // ── Keyboard navigation ───────────────────────────────────────────────────
   const onKeyDown = (e: React.KeyboardEvent) => {
     const count = btnRefs.current.filter(Boolean).length
     if (e.key === 'Escape') {
       e.preventDefault()
+      if (popover) dismissedRef.current = popover.match.offset
       setPopover(null)
       editor.view.focus()
     } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -99,7 +155,6 @@ export function GrammarPopover({ editor, matches }: Props) {
       e.preventDefault()
       setFocusIdx((i) => Math.max(i - 1, 0))
     }
-    // Enter is handled natively by the focused button's onClick
   }
 
   const applyReplacement = (replacement: string) => {
@@ -141,18 +196,14 @@ export function GrammarPopover({ editor, matches }: Props) {
     outline: 'none',
   }
 
-  const focusedStyle: React.CSSProperties = {
-    ...chipStyle,
-    background: chipHoverBg,
-    color: textHover,
-  }
+  const focusedStyle: React.CSSProperties = { ...chipStyle, background: chipHoverBg, color: textHover }
 
   const onEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.background = chipHoverBg
     e.currentTarget.style.color = textHover
   }
   const onLeave = (e: React.MouseEvent<HTMLButtonElement>, idx: number) => {
-    if (focusIdx === idx) return // keep highlight if still focused
+    if (focusIdx === idx) return
     e.currentTarget.style.background = 'none'
     e.currentTarget.style.color = textColor
   }
