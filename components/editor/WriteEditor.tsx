@@ -172,14 +172,22 @@ export function WriteEditor() {
               }
               _debouncedCheck.current(view.state.doc.textContent, (ms) => {
                 const posMap = buildGrammarPosMap(view.state)
-                const decos: Decoration[] = []
-                for (const m of ms) {
+                // Filter matches that span a paragraph boundary: within a single block
+                // posMap positions are sequential (posMap[end-1] === posMap[start] + length-1).
+                // A cross-block match has a larger gap — it's a false positive (the paragraph
+                // break is already a sentence separator).
+                const valid = ms.filter((m) => {
                   const end = m.offset + m.length
-                  if (m.offset >= posMap.length || end > posMap.length) continue
+                  if (m.offset >= posMap.length || end > posMap.length) return false
+                  return posMap[end - 1] === posMap[m.offset] + m.length - 1
+                })
+                const decos: Decoration[] = []
+                for (const m of valid) {
+                  const end = m.offset + m.length
                   decos.push(Decoration.inline(posMap[m.offset], posMap[end - 1] + 1, { class: `lt-${m.category}` }))
                 }
                 view.dispatch(view.state.tr.setMeta(_grammarKey, DecorationSet.create(view.state.doc, decos)))
-                _ltMatchesRef.current = ms; _setLtMatches(ms)
+                _ltMatchesRef.current = valid; _setLtMatches(valid)
               })
             }
             triggerCheckRef.current = run

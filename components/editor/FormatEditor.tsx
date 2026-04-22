@@ -318,24 +318,30 @@ export function FormatEditor() {
                     }
                   })
 
-                  const decos: Decoration[] = []
-                  for (const m of matches) {
+                  // Filter matches that span a paragraph boundary (false positives —
+                  // a paragraph break is already a valid sentence separator).
+                  const valid = matches.filter((m) => {
                     const end = m.offset + m.length
-                    if (end > posMap.length || m.offset >= posMap.length) continue
+                    if (end > posMap.length || m.offset >= posMap.length) return false
+                    return posMap[end - 1] === posMap[m.offset] + m.length - 1
+                  })
+                  const decos: Decoration[] = []
+                  for (const m of valid) {
+                    const end = m.offset + m.length
                     const from = posMap[m.offset]
                     const to   = posMap[end - 1] + 1
                     decos.push(Decoration.inline(from, to, {
                       class: `lt-${m.category}`,
                       'data-lt-rule': m.ruleId,
-                      'data-lt-idx': String(matches.indexOf(m)),
+                      'data-lt-idx': String(valid.indexOf(m)),
                     }))
                   }
                   const set = DecorationSet.create(view.state.doc, decos)
                   decorSetRef.current = set
                   const tr = view.state.tr.setMeta(key, set)
                   view.dispatch(tr)
-                  ltMatchesRef.current = matches
-                  setLtMatches(matches)
+                  ltMatchesRef.current = valid
+                  setLtMatches(valid)
                 })
               }
               triggerCheckRef.current = run
