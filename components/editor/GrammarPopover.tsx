@@ -196,11 +196,13 @@ export function GrammarPopover({ editor, matches }: Props) {
   // ── Clamp to container bounds (runs before paint, no flash) ───────────────
   useLayoutEffect(() => {
     if (!popover || !ref.current) { setClampedX(null); return }
-    const popW      = ref.current.offsetWidth
     const container = editor.view.dom.getBoundingClientRect()
     const pad       = 8
-    const min       = container.left + popW / 2 + pad
-    const max       = container.right - popW / 2 - pad
+    // Cap to container width so chips never overflow the editor
+    ref.current.style.maxWidth = `${container.width - pad * 2}px`
+    const popW = ref.current.offsetWidth
+    const min  = container.left + popW / 2 + pad
+    const max  = container.right - popW / 2 - pad
     setClampedX(Math.min(Math.max(popover.x, min), max))
   }, [popover, editor])
 
@@ -270,7 +272,6 @@ export function GrammarPopover({ editor, matches }: Props) {
         display: 'flex',
         flexWrap: 'nowrap',
         gap: 2,
-        maxWidth: 360,
         visibility: clampedX === null ? 'hidden' : 'visible',
       }}
     >
