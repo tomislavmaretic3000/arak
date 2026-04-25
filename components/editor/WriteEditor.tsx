@@ -89,7 +89,7 @@ function buildSearchPosMap(state: EditorState): Array<number | null> {
 
 export function WriteEditor() {
   const {
-    content, focusMode: focusModeStore, posHighlight, showWordCount,
+    content, focusMode: focusModeStore, typewriterMode, posHighlight, showWordCount,
     grammarCheck, font, fontSize, spacing, setContent,
   } = useEditorStore()
   const menuOpen  = useUIStore((s) => s.menuOpen)
@@ -424,6 +424,29 @@ export function WriteEditor() {
     } catch { /* ignore if pos out of range */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, currentMatchIndex, matches, searchOpen])
+
+  // ── Typewriter mode: keep cursor line fixed at ~40% from top ─────────────
+  const typewriterModeRef = useRef(typewriterMode)
+  useEffect(() => { typewriterModeRef.current = typewriterMode }, [typewriterMode])
+
+  useEffect(() => {
+    if (!editor) return
+    const onTransaction = () => {
+      if (!typewriterModeRef.current) return
+      const { selection } = editor.state
+      if (!selection.empty) return
+      try {
+        const coords = editor.view.coordsAtPos(selection.anchor)
+        // Target: 40% from top of the viewport
+        const target = window.innerHeight * 0.4
+        const delta  = coords.top - target
+        if (Math.abs(delta) < 2) return
+        window.scrollBy({ top: delta, behavior: 'smooth' })
+      } catch { /* ignore */ }
+    }
+    editor.on('transaction', onTransaction)
+    return () => { editor.off('transaction', onTransaction) }
+  }, [editor])
 
   // ── File operations ───────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {

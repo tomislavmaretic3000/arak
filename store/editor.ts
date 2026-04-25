@@ -9,6 +9,7 @@ export type SpacingOption = 'small' | 'normal' | 'large'
 interface EditorStore {
   content: string
   focusMode: boolean
+  typewriterMode: boolean
   posHighlight: boolean
   showWordCount: boolean
   grammarCheck: boolean
@@ -19,6 +20,7 @@ interface EditorStore {
   setContent: (content: string) => void
   toggleFocusMode: () => void
   setFocusMode: (v: boolean) => void
+  setTypewriterMode: (v: boolean) => void
   setPosHighlight: (v: boolean) => void
   setShowWordCount: (v: boolean) => void
   setGrammarCheck: (v: boolean) => void
@@ -33,6 +35,7 @@ export const useEditorStore = create<EditorStore>()(
     (set) => ({
       content: '',
       focusMode: true,
+      typewriterMode: false,
       posHighlight: false,
       showWordCount: false,
       grammarCheck: false,
@@ -43,6 +46,7 @@ export const useEditorStore = create<EditorStore>()(
       setContent: (content) => set({ content }),
       toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
       setFocusMode: (focusMode) => set({ focusMode }),
+      setTypewriterMode: (typewriterMode) => set({ typewriterMode }),
       setPosHighlight: (posHighlight) => set({ posHighlight }),
       setShowWordCount: (showWordCount) => set({ showWordCount }),
       setGrammarCheck: (grammarCheck) => set({ grammarCheck }),

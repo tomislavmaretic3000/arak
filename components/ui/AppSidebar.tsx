@@ -83,7 +83,7 @@ export function AppSidebar() {
   const pathname = usePathname()
   const isWrite = pathname === '/write'
 
-  const { theme, font, fontSize, spacing, focusMode: focusModeStore, posHighlight, showWordCount, grammarCheck, setTheme, setFont, setFontSize, setSpacing, setFocusMode, setPosHighlight, setShowWordCount, setGrammarCheck } = useEditorStore()
+  const { theme, font, fontSize, spacing, focusMode: focusModeStore, typewriterMode, posHighlight, showWordCount, grammarCheck, setTheme, setFont, setFontSize, setSpacing, setFocusMode, setTypewriterMode, setPosHighlight, setShowWordCount, setGrammarCheck } = useEditorStore()
   const writeContent = useEditorStore((s) => s.content)
   const setWriteContent = useEditorStore((s) => s.setContent)
   const writeTitle = useFilesStore((s) => s.title)
@@ -348,6 +348,11 @@ export function AppSidebar() {
             <SettingRow label="Highlight paragraph">
               <Toggle value={focusModeStore} onChange={setFocusMode} />
             </SettingRow>
+            {isWrite && (
+              <SettingRow label="Typewriter mode">
+                <Toggle value={typewriterMode} onChange={setTypewriterMode} />
+              </SettingRow>
+            )}
             <SettingRow label="Mark word classes">
               <Toggle value={posHighlight} onChange={setPosHighlight} />
             </SettingRow>
