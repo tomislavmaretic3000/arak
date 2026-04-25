@@ -44,15 +44,30 @@ function plainTextToDoc(text: string) {
 
 // ── Position maps ─────────────────────────────────────────────────────────────
 
-// Grammar posMap: doc.textContent index → PM position (no separator entries)
-function buildGrammarPosMap(state: EditorState): number[] {
-  const map: number[] = []
+// Grammar posMap: paragraph-separated text index → PM position
+// null entries represent the '\n' separator between paragraphs.
+// Sending '\n'-separated text to LT makes it treat paragraph breaks as
+// sentence boundaries, preventing false "missing space" positives.
+function buildGrammarPosMap(state: EditorState): Array<number | null> {
+  const map: Array<number | null> = []
+  let first = true
   state.doc.forEach((node, offset) => {
     if (!node.isTextblock) return
+    if (!first) map.push(null) // '\n' separator
+    first = false
     const start = offset + 1
     for (let i = 0; i < node.textContent.length; i++) map.push(start + i)
   })
   return map
+}
+
+function buildGrammarText(state: EditorState): string {
+  const parts: string[] = []
+  state.doc.forEach((node) => {
+    if (!node.isTextblock) return
+    parts.push(node.textContent)
+  })
+  return parts.join('\n')
 }
 
 // Search posMap: getText({ blockSeparator: '\n' }) index → PM position
@@ -170,21 +185,21 @@ export function WriteEditor() {
                 view.dispatch(view.state.tr.setMeta(_grammarKey, DecorationSet.empty))
                 _ltMatchesRef.current = []; _setLtMatches([]); return
               }
-              _debouncedCheck.current(view.state.doc.textContent, (ms) => {
+              _debouncedCheck.current(buildGrammarText(view.state), (ms) => {
                 const posMap = buildGrammarPosMap(view.state)
-                // Filter matches that span a paragraph boundary: within a single block
-                // posMap positions are sequential (posMap[end-1] === posMap[start] + length-1).
-                // A cross-block match has a larger gap — it's a false positive (the paragraph
-                // break is already a sentence separator).
+                // Drop any match that overlaps a null (paragraph-break) sentinel.
+                // LT sees '\n' as a sentence boundary so it won't flag them anyway,
+                // but guard here for safety.
                 const valid = ms.filter((m) => {
                   const end = m.offset + m.length
                   if (m.offset >= posMap.length || end > posMap.length) return false
-                  return posMap[end - 1] === posMap[m.offset] + m.length - 1
+                  for (let i = m.offset; i < end; i++) if (posMap[i] === null) return false
+                  return true
                 })
                 const decos: Decoration[] = []
                 for (const m of valid) {
                   const end = m.offset + m.length
-                  decos.push(Decoration.inline(posMap[m.offset], posMap[end - 1] + 1, { class: `lt-${m.category}` }))
+                  decos.push(Decoration.inline(posMap[m.offset] as number, (posMap[end - 1] as number) + 1, { class: `lt-${m.category}` }))
                 }
                 view.dispatch(view.state.tr.setMeta(_grammarKey, DecorationSet.create(view.state.doc, decos)))
                 _ltMatchesRef.current = valid; _setLtMatches(valid)

@@ -306,30 +306,36 @@ export function FormatEditor() {
                   setLtMatches([])
                   return
                 }
-                const text = view.state.doc.textContent
+                // Build '\n'-separated text — LT treats newlines as sentence
+                // boundaries so it won't flag cross-paragraph spacing.
+                const parts: string[] = []
+                view.state.doc.forEach((node) => { if (node.isTextblock) parts.push(node.textContent) })
+                const text = parts.join('\n')
+
                 debouncedCheck.current(text, (matches) => {
-                  // Build flat-text-index → ProseMirror-position map
-                  const posMap: number[] = []
+                  // Build posMap with null sentinels for '\n' separators
+                  const posMap: Array<number | null> = []
+                  let first = true
                   view.state.doc.forEach((node, offset) => {
                     if (!node.isTextblock) return
-                    const pmStart = offset + 1 // +1 skips the node's opening token
-                    for (let i = 0; i < node.textContent.length; i++) {
-                      posMap.push(pmStart + i)
-                    }
+                    if (!first) posMap.push(null)
+                    first = false
+                    const pmStart = offset + 1
+                    for (let i = 0; i < node.textContent.length; i++) posMap.push(pmStart + i)
                   })
 
-                  // Filter matches that span a paragraph boundary (false positives —
-                  // a paragraph break is already a valid sentence separator).
+                  // Drop any match overlapping a null (paragraph break)
                   const valid = matches.filter((m) => {
                     const end = m.offset + m.length
                     if (end > posMap.length || m.offset >= posMap.length) return false
-                    return posMap[end - 1] === posMap[m.offset] + m.length - 1
+                    for (let i = m.offset; i < end; i++) if (posMap[i] === null) return false
+                    return true
                   })
                   const decos: Decoration[] = []
                   for (const m of valid) {
                     const end = m.offset + m.length
-                    const from = posMap[m.offset]
-                    const to   = posMap[end - 1] + 1
+                    const from = posMap[m.offset] as number
+                    const to   = (posMap[end - 1] as number) + 1
                     decos.push(Decoration.inline(from, to, {
                       class: `lt-${m.category}`,
                       'data-lt-rule': m.ruleId,
