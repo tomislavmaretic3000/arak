@@ -11,6 +11,7 @@ import { useFormatStore } from '@/store/format'
 import { useDocumentsStore } from '@/store/documents'
 import { useDriveStore } from '@/store/drive'
 import { saveToFile, loadFromFile } from '@/lib/utils/fileSystem'
+import { editorRefs } from '@/store/editorRefs'
 import { listDriveFolder, readDriveFile, saveToDrive, type DriveFile } from '@/lib/drive/api'
 import { Folder, FileText, ChevronLeft } from 'lucide-react'
 
@@ -172,6 +173,15 @@ export function AppSidebar() {
     if (!result) return
     setWriteContent(result.content)
     setWriteTitle(result.name)
+    // If the write editor is already mounted, update it directly.
+    // The store update alone doesn't re-trigger setContent in the editor.
+    if (editorRefs.write) {
+      const paragraphs = result.content.split('\n').map((p) => ({
+        type: 'paragraph',
+        content: p ? [{ type: 'text', text: p }] : [],
+      }))
+      editorRefs.write.commands.setContent({ type: 'doc', content: paragraphs })
+    }
     router.push('/write')
     closeMenu()
   }, [setWriteContent, setWriteTitle, router, closeMenu])

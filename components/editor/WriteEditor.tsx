@@ -465,6 +465,7 @@ export function WriteEditor() {
     setContent(result.content)
     setTitle(result.name)
     markSaved()
+    triggerCheckRef.current?.()
   }, [editor, setContent, setTitle, markSaved])
 
   // ── Keyboard shortcuts (Cmd+S / Cmd+O only — Cmd+F/K handled by CommandBar) ──
