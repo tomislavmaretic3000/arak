@@ -13,27 +13,37 @@ interface Props {
   matches: LTMatch[]
 }
 
-function buildPosMap(state: EditorState): number[] {
-  const map: number[] = []
+// Must match the posMap used when building matches: '\n'-separated paragraphs,
+// with null entries for the '\n' separator characters between blocks.
+function buildPosMap(state: EditorState): Array<number | null> {
+  const map: Array<number | null> = []
+  let first = true
   state.doc.forEach((node, offset) => {
     if (!node.isTextblock) return
+    if (!first) map.push(null) // '\n' separator
+    first = false
     const pmStart = offset + 1
     for (let i = 0; i < node.textContent.length; i++) map.push(pmStart + i)
   })
   return map
 }
 
-function matchAtPos(pos: number, matches: LTMatch[], posMap: number[]): LTMatch | null {
+function matchAtPos(pos: number, matches: LTMatch[], posMap: Array<number | null>): LTMatch | null {
   return matches.find((m) => {
     const end = m.offset + m.length
     if (m.offset >= posMap.length || end > posMap.length) return false
-    return pos >= posMap[m.offset] && pos <= posMap[end - 1] + 1
+    const from = posMap[m.offset]
+    const to   = posMap[end - 1]
+    if (from === null || to === null) return false
+    return pos >= from && pos <= to + 1
   }) ?? null
 }
 
-function spanForMatch(view: EditorView, match: LTMatch, posMap: number[]): HTMLElement | null {
+function spanForMatch(view: EditorView, match: LTMatch, posMap: Array<number | null>): HTMLElement | null {
   try {
-    const { node } = view.domAtPos(posMap[match.offset])
+    const pmPos = posMap[match.offset]
+    if (pmPos === null) return null
+    const { node } = view.domAtPos(pmPos)
     const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as HTMLElement
     return el?.closest('.lt-spelling, .lt-grammar, .lt-style, .lt-other') as HTMLElement | null
   } catch { return null }
@@ -65,25 +75,20 @@ export function GrammarPopover({ editor, matches }: Props) {
   useEffect(() => { focusIdxRef.current = focusIdx }, [focusIdx])
 
   // ── Apply replacement (stable via ref) ───────────────────────────────────
-  const applyRef = useRef((replacement: string, match: LTMatch) => {
-    const posMap = buildPosMap(editor.state)
+  const doApply = (replacement: string, match: LTMatch, ed: typeof editor) => {
+    const posMap = buildPosMap(ed.state)
     const end = match.offset + match.length
     if (match.offset >= posMap.length || end > posMap.length) { setPopover(null); return }
     const from = posMap[match.offset]
-    const to   = posMap[end - 1] + 1
-    editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, replacement).run()
+    const to   = posMap[end - 1]
+    if (from === null || to === null) { setPopover(null); return }
+    ed.chain().focus().deleteRange({ from, to: to + 1 }).insertContentAt(from, replacement).run()
     setPopover(null)
-  })
+  }
+  const applyRef = useRef((replacement: string, match: LTMatch) => doApply(replacement, match, editor))
   useEffect(() => {
-    applyRef.current = (replacement: string, match: LTMatch) => {
-      const posMap = buildPosMap(editor.state)
-      const end = match.offset + match.length
-      if (match.offset >= posMap.length || end > posMap.length) { setPopover(null); return }
-      const from = posMap[match.offset]
-      const to   = posMap[end - 1] + 1
-      editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, replacement).run()
-      setPopover(null)
-    }
+    applyRef.current = (replacement: string, match: LTMatch) => doApply(replacement, match, editor)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor])
 
   // ── Transaction listener — fires after every PM state change ─────────────
