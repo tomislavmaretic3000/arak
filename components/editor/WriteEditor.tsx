@@ -290,6 +290,7 @@ export function WriteEditor() {
   const editor = useEditor({
     extensions,
     content: content ? plainTextToDoc(content) : undefined,
+    immediatelyRender: false,
     autofocus: true,
     onUpdate: ({ editor }) => {
       const text = editor.getText({ blockSeparator: '\n' })

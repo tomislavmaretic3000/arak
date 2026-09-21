@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans, Noto_Serif, Noto_Sans_Mono } from "next/font/google";
+import Script from "next/script";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { AgentationProvider } from "@/components/providers/AgentationProvider";
 import { LenisProvider } from "@/components/providers/LenisProvider";
@@ -43,7 +44,9 @@ export default function RootLayout({
     >
       <head>
         {/* Anti-FOUC: apply saved theme before hydration */}
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=JSON.parse(localStorage.getItem('arak-editor')||'{}');var t=s&&s.state&&s.state.theme;if(t&&t!=='light')document.documentElement.dataset.theme=t}catch(e){}})();`,
           }}

@@ -49,6 +49,7 @@ import {
   List as ListIcon,
   Check,
   X,
+  Upload,
 } from 'lucide-react'
 
 const SLASH_ICON = { size: 18, strokeWidth: 1.5 }
@@ -160,6 +161,7 @@ export function FormatEditor() {
   const [slashInputMode, setSlashInputMode] = useState<SlashInputMode>(null)
   const [slashInputValue, setSlashInputValue] = useState('')
   const slashInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef  = useRef<HTMLInputElement>(null)
 
   const handlersRef = useRef<SlashHandlers>({
     onStart: () => {},
@@ -204,6 +206,19 @@ export function FormatEditor() {
   const dismissSlashInput = useCallback(() => {
     setSlashInputMode(null); setSlashInputValue('')
   }, [])
+
+  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !slashInputMode) return
+    const { range, editor } = slashInputMode
+    const reader = new FileReader()
+    reader.onload = () => {
+      editor.chain().focus().deleteRange(range).setImage({ src: reader.result as string }).run()
+      setSlashInputMode(null); setSlashInputValue(''); setSlashMenu(null)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }, [slashInputMode])
 
   // ── Slash menu keyboard navigation ───────────────────────────────────────
   useEffect(() => {
@@ -377,6 +392,7 @@ export function FormatEditor() {
 
   // ── TipTap editor ──────────────────────────────────────────────────────────
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({ horizontalRule: false }),
       Highlight,
@@ -557,9 +573,28 @@ export function FormatEditor() {
         >
           {slashInputMode ? (
             <>
-              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', padding: '0 4px' }}>
-                <SlashIcon title={slashInputMode.type === 'link' ? 'Link' : 'Image'} />
-              </span>
+              {slashInputMode.type === 'link' && (
+                <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', padding: '0 4px' }}>
+                  <SlashIcon title="Link" />
+                </span>
+              )}
+              {slashInputMode.type === 'image' && (
+                <>
+                  <SlashBtn
+                    icon={<Upload size={16} strokeWidth={1.5} />}
+                    title="Upload from device"
+                    onClick={() => fileInputRef.current?.click()}
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleImageUpload}
+                  />
+                  <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+                </>
+              )}
               <input
                 ref={slashInputRef}
                 autoFocus
