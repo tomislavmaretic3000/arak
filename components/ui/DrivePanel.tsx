@@ -189,7 +189,7 @@ export function DrivePanel({ isOpen, onClose }: Props) {
           transition: 'transform 180ms ease-in-out',
           display: 'flex',
           flexDirection: 'column',
-          fontFamily: 'var(--font-noto-sans)',
+          fontFamily: 'var(--font-geist-sans)',
           overflow: 'hidden',
         }}
       >
@@ -377,7 +377,7 @@ const primaryBtn: React.CSSProperties = {
   borderRadius: '7px',
   padding: '8px 14px',
   fontSize: '12px',
-  fontFamily: 'var(--font-noto-sans)',
+  fontFamily: 'var(--font-geist-sans)',
   cursor: 'pointer',
   letterSpacing: '0.02em',
 }
@@ -389,7 +389,7 @@ const secondaryBtn: React.CSSProperties = {
   borderRadius: '7px',
   padding: '7px 12px',
   fontSize: '12px',
-  fontFamily: 'var(--font-noto-sans)',
+  fontFamily: 'var(--font-geist-sans)',
   cursor: 'pointer',
   letterSpacing: '0.02em',
 }
@@ -400,7 +400,7 @@ const ghostBtn: React.CSSProperties = {
   cursor: 'pointer',
   color: 'var(--muted)',
   fontSize: '13px',
-  fontFamily: 'var(--font-noto-sans)',
+  fontFamily: 'var(--font-geist-sans)',
   padding: '2px 4px',
   borderRadius: '4px',
   flexShrink: 0,

@@ -121,9 +121,9 @@ export function WriteEditor() {
 
   // ── Font / spacing ────────────────────────────────────────────────────────
   const fontFamily =
-    font === 'serif' ? 'var(--font-noto-serif)'
-    : font === 'mono' ? 'var(--font-noto-mono)'
-    : 'var(--font-noto-sans)'
+    font === 'serif' ? 'var(--font-geist-serif)'
+    : font === 'mono' ? 'var(--font-geist-mono)'
+    : 'var(--font-geist-sans)'
   const fontSizePx = FONT_SIZE_MAP[fontSize]
   const { lineHeight, letterSpacing, wordSpacing } = SPACING_MAP[spacing]
 

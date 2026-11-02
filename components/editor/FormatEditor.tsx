@@ -286,9 +286,9 @@ export function FormatEditor() {
   )
 
   const fontFamily =
-    font === 'serif' ? 'var(--font-noto-serif)'
-    : font === 'mono' ? 'var(--font-noto-mono)'
-    : 'var(--font-noto-sans)'
+    font === 'serif' ? 'var(--font-geist-serif)'
+    : font === 'mono' ? 'var(--font-geist-mono)'
+    : 'var(--font-geist-sans)'
 
   // ── Grammar decoration extension ──────────────────────────────────────────
   const GrammarExtension = useMemo(() => {

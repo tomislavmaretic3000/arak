@@ -94,7 +94,7 @@ export function SearchBar() {
         flexDirection: 'column',
         gap: '8px',
         minWidth: '280px',
-        fontFamily: 'var(--font-noto-sans)',
+        fontFamily: 'var(--font-geist-sans)',
       }}
     >
       {/* ── Search row ── */}
@@ -197,7 +197,7 @@ const inputStyle: React.CSSProperties = {
   padding: '5px 8px',
   fontSize: '13px',
   color: 'var(--fg)',
-  fontFamily: 'var(--font-noto-sans)',
+  fontFamily: 'var(--font-geist-sans)',
   outline: 'none',
   minWidth: 0,
 }
@@ -222,7 +222,7 @@ const actionButtonStyle: React.CSSProperties = {
   color: 'var(--muted)',
   fontSize: '11px',
   padding: '4px 8px',
-  fontFamily: 'var(--font-noto-sans)',
+  fontFamily: 'var(--font-geist-sans)',
   letterSpacing: '0.02em',
   flexShrink: 0,
 }
