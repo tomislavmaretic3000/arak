@@ -19,10 +19,10 @@ export function AboutView() {
 
   const fontFamily =
     font === 'serif'
-      ? 'var(--font-noto-serif)'
+      ? 'var(--font-geist-serif)'
       : font === 'mono'
-      ? 'var(--font-noto-mono)'
-      : 'var(--font-noto-sans)'
+      ? 'var(--font-geist-mono)'
+      : 'var(--font-geist-sans)'
 
   const fontSizePx  = FONT_SIZE_MAP[fontSize]
   const { lineHeight: lineHeightV } = SPACING_MAP[spacing]

@@ -31,7 +31,7 @@ export function buildHtmlDocument(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${esc(title)}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500&family=Noto+Serif:wght@300;400;500&family=Noto+Sans+Mono:wght@300;400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@300;400;500&display=swap');
 
     * { box-sizing: border-box; }
     body {
@@ -64,7 +64,7 @@ export function buildHtmlDocument(
       font-style: italic;
     }
     code {
-      font-family: 'Noto Sans Mono', monospace;
+      font-family: 'Geist Mono', monospace;
       font-size: 0.88em;
       background: #f0f0ec;
       padding: 0.1em 0.35em;

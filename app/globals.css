@@ -53,9 +53,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-noto-sans);
-  --font-serif: var(--font-noto-serif);
-  --font-mono: var(--font-noto-mono);
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-geist-serif);
+  --font-mono: var(--font-geist-mono);
 }
 
 * {
@@ -170,7 +170,7 @@ body {
   font-style: italic;
 }
 .tiptap code {
-  font-family: var(--font-noto-mono);
+  font-family: var(--font-geist-mono);
   font-size: 0.85em;
   background: #f0f0ec;
   padding: 0.15em 0.4em;

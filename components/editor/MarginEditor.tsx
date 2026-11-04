@@ -8,7 +8,7 @@ type Side = 'top' | 'right' | 'bottom' | 'left'
 const LABEL_COLOR  = 'rgba(0,0,0,0.32)'
 const LINE_COLOR   = 'rgba(0,0,0,0.15)'
 const ACTIVE_COLOR = 'rgba(0,0,0,0.5)'
-const MONO = 'var(--font-noto-mono)'
+const MONO = 'var(--font-geist-mono)'
 
 function dashV(color: string) {
   return `repeating-linear-gradient(to bottom, ${color} 0px, ${color} 3px, transparent 3px, transparent 9px)`

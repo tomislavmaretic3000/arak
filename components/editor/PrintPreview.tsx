@@ -22,16 +22,14 @@ function buildPrintDoc(
   wordSpacing: string,
 ): string {
   const fontFamily =
-    font === 'serif' ? "'Noto Serif', Georgia, serif"
-    : font === 'mono' ? "'Noto Sans Mono', 'Courier New', monospace"
-    : "'Noto Sans', Helvetica, Arial, sans-serif"
+    font === 'serif' ? "'Geist', Georgia, serif"
+    : font === 'mono' ? "'Geist Mono', 'Courier New', monospace"
+    : "'Geist', Helvetica, Arial, sans-serif"
 
   const googleFont =
-    font === 'serif'
-      ? 'Noto+Serif:ital,wght@0,300;0,400;0,500;1,400'
-      : font === 'mono'
-      ? 'Noto+Sans+Mono:wght@300;400'
-      : 'Noto+Sans:ital,wght@0,300;0,400;0,500;1,400'
+    font === 'mono'
+      ? 'Geist+Mono:wght@300;400;500'
+      : 'Geist:wght@300;400;500'
 
   const pageSize = paperFormat === 'letter' ? '8.5in 11in' : 'A4'
 
@@ -84,7 +82,7 @@ function buildPrintDoc(
     break-inside: avoid;
   }
   code {
-    font-family: 'Noto Sans Mono', 'Courier New', monospace;
+    font-family: 'Geist Mono', 'Courier New', monospace;
     font-size: 0.85em;
     background: #f0f0ec;
     padding: 0.1em 0.3em;
